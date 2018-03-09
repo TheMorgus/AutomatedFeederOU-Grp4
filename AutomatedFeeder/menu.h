@@ -7,8 +7,6 @@ private:
 	void printLoad();
 	void printETA();
 	void printFeed();
-public:
-	LiquidCrystal lcd = LiquidCrystal(2, 3, 4, 5, 6, 7);
 
 	//Character for a full load bar
 	byte load_full[8] = {
@@ -33,12 +31,13 @@ public:
 		B11111,
 	};
 
+	LiquidCrystal lcd = LiquidCrystal(2, 3, 4, 5, 6, 7);
+
 	int load;
 	int hours;
 	int feedTime;
 
-	
-	
+public:
 	void setLoad(int load);
 	void setETA(int hours);
 	void setFeed(int time);

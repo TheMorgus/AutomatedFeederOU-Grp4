@@ -38,14 +38,17 @@ void Menu::setLoad(int load) {
 	Menu::load = load;
 }
 
+//Sets variable corresponding to hours till the next feed
 void Menu::setETA(int hours) {
 	Menu::hours = hours;
 }
 
+//sets variable corresponding till time till next feed
 void Menu::setFeed(int time) {
 	Menu::feedTime = time;
 }
 
+//prints the line with information that tells user when the next estimated refill is
 void Menu::printETA() {
 	lcd.setCursor(0, 1);
 	lcd.print("Refill ETA :");
@@ -55,6 +58,7 @@ void Menu::printETA() {
 	lcd.print("Hrs");
 }
 
+//prints the line that informs when the animal will be fed next
 void Menu::printFeed() {
 	lcd.setCursor(0, 0);
 	lcd.print("Next Feed @: ");
