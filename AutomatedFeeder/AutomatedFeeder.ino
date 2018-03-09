@@ -13,9 +13,12 @@ Menu menu;
 
 void setup() {
 	menu = Menu();
+	menu.setLoad(5);
+	menu.setETA(30);
+	menu.setFeed(1030);
 }
 
 void loop() {
-	menu.setLoad(8);
+
 	menu.update();
 }

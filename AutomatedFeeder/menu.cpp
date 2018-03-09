@@ -38,7 +38,33 @@ void Menu::setLoad(int load) {
 	Menu::load = load;
 }
 
+void Menu::setETA(int hours) {
+	Menu::hours = hours;
+}
+
+void Menu::setFeed(int time) {
+	Menu::feedTime = time;
+}
+
+void Menu::printETA() {
+	lcd.setCursor(0, 1);
+	lcd.print("Refill ETA :");
+	lcd.setCursor(13, 1);
+	lcd.print(hours);
+	lcd.setCursor(16, 1);
+	lcd.print("Hrs");
+}
+
+void Menu::printFeed() {
+	lcd.setCursor(0, 0);
+	lcd.print("Next Feed @: ");
+	lcd.setCursor(13, 0);
+	lcd.print(feedTime);
+}
+
 //Updates the screen based on all current information in the class
 void Menu::update() {
+	printFeed();
+	printETA();
 	printLoad();
 }

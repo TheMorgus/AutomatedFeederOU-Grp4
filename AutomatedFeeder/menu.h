@@ -5,6 +5,8 @@
 class Menu {
 private:
 	void printLoad();
+	void printETA();
+	void printFeed();
 public:
 	LiquidCrystal lcd = LiquidCrystal(2, 3, 4, 5, 6, 7);
 
@@ -32,10 +34,15 @@ public:
 	};
 
 	int load;
+	int hours;
+	int feedTime;
 
 	
 	
 	void setLoad(int load);
+	void setETA(int hours);
+	void setFeed(int time);
+
 	void update();
 
 	Menu();
