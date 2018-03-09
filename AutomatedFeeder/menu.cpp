@@ -27,7 +27,7 @@ void Menu::printLoad() {
 	}
 }
 
-//Sets the load property of the class
+//Sets the load variable of the class
 void Menu::setLoad(int load) {
 	if (load > 15) {
 		load = 15;
