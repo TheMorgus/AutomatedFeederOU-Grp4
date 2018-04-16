@@ -82,11 +82,15 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AS5040.h" />
+    <ClInclude Include="FeederControl.h" />
     <ClInclude Include="menu.h" />
     <ClInclude Include="__vm\.AutomatedFeeder.vsarduino.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="FeederControl.cpp" />
     <ClCompile Include="menu.cpp" />
+    <ClCompile Include="AS5040.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

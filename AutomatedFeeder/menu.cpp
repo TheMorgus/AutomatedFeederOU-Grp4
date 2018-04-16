@@ -3,7 +3,8 @@
 
 //Constructor
 //Initializes LCD and creates special characters
-Menu::Menu() {
+Menu::Menu(int EN, int RS, int D4, int D5, int D6, int D7){
+	lcd = LiquidCrystal(2, 3, 4, 5, 6, 7);
 	lcd.begin(20, 4);
 	lcd.createChar(0, (uint8_t*)load_full);
 	lcd.createChar(1, (uint8_t*)load_empty);
@@ -46,6 +47,16 @@ void Menu::setETA(int hours) {
 //sets variable corresponding till time till next feed
 void Menu::setFeed(int time) {
 	Menu::feedTime = time;
+}
+
+//These functions were made only for testing the motor encoder. Delete when not needed.
+void Menu::testPrint(long test) {
+	lcd.setCursor(0, 2);
+	lcd.print(test);
+}
+void Menu::testPrint2(long test) {
+	lcd.setCursor(6, 2);
+	lcd.print(test);
 }
 
 //prints the line with information that tells user when the next estimated refill is

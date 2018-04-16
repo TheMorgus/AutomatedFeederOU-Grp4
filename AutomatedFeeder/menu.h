@@ -31,7 +31,9 @@ private:
 		B11111,
 	};
 
-	LiquidCrystal lcd = LiquidCrystal(2, 3, 4, 5, 6, 7);
+	//This is initialized with dummy pin values because LCD does not have a default constructor, so it must be used
+	//with this constructor
+	LiquidCrystal lcd = LiquidCrystal(1, 1, 1, 1, 1, 1);
 
 	int load;
 	int hours;
@@ -41,8 +43,10 @@ public:
 	void setLoad(int load);
 	void setETA(int hours);
 	void setFeed(int time);
+	void testPrint(long test);
+	void testPrint2(long test);
 
 	void update();
 
-	Menu();
+	Menu(int RS, int EN, int D4, int D5, int D6, int D7);
 };
