@@ -1,19 +1,172 @@
 #include "menu.h"
 #include "LiquidCrystal.h"
+#include "DS3231.h"
 
 //Constructor
 //Initializes LCD and creates special characters
-Menu::Menu(int EN, int RS, int D4, int D5, int D6, int D7){
-	lcd = LiquidCrystal(2, 3, 4, 5, 6, 7);
+Menu::Menu(int EN, int RS, int D4, int D5, int D6, int D7, Time* clockTime): lcd(EN, RS, D4, D5, D6, D7) {
 	lcd.begin(20, 4);
 	lcd.createChar(0, (uint8_t*)load_full);
 	lcd.createChar(1, (uint8_t*)load_empty);
+	this->clockTime = clockTime;
 }
 
-//Private Variable
-//Prints the load line, with load bars corresponding to classes load property.
-//Load Bar Max == 15;
-void Menu::printLoad() {
+
+//Sets the load variable of the class
+void Menu::setLoad(int load) {
+	if (load > 15) {
+		load = 15;
+	}
+	if (load < 0) {
+		load = 0;
+	}
+	Menu::load = load;
+}
+
+//sets variable corresponding to time till next feed
+void Menu::setFeed(int hr, int min, int sec) {
+	Menu::feedTime.hour = hr;
+	Menu::feedTime.min = min;
+	Menu::feedTime.sec = sec;
+}
+
+//These functions were made only for testing the motor encoder. !!DELETE WHEN NO LONGER NECESSARY!!
+void Menu::testPrint(long test) {
+	lcd.setCursor(0, 2);
+	lcd.print(test);
+}
+void Menu::testPrint(char* test) {
+	lcd.setCursor(0, 2);
+	lcd.print(test);
+}
+void Menu::testPrint2(long test) {
+	lcd.setCursor(6, 2);
+	lcd.print(test);
+}
+void Menu::print(int column, int row, int test) {
+	lcd.setCursor(column, row);
+	lcd.print(test);
+}
+
+//END OF TEST FUNCTIONS; DELETE LATER
+
+void Menu::printOptions() {
+	//draw menu
+	lcd.setCursor(2, 0);
+	lcd.print("SET TIME");
+	lcd.setCursor(2, 1);
+	lcd.print("SET FEED TIME");
+	lcd.setCursor(2, 2);
+	lcd.print("SET FEED VOLUME");
+	lcd.setCursor(2, 3);
+	lcd.print("EXIT");
+	lcd.setCursor(13, 3);
+	lcd.print("DEBUG");
+
+	//draw cursor
+	switch (menuState) {
+	case OPTION_TIME:
+		lcd.setCursor(0, 0);
+		lcd.print("->");
+		break;
+	case OPTION_FEEDTIME:
+		lcd.setCursor(0, 1);
+		lcd.print("->");
+		break;
+	case OPTION_FEEDVOLUME:
+		lcd.setCursor(0, 2);
+		lcd.print("->");
+		break;
+	case OPTION_EXIT:
+		lcd.setCursor(0, 3);
+		lcd.print("->");
+		break;
+	case OPTION_DEBUG:
+		lcd.setCursor(11, 3);
+		lcd.print("->");
+		break;
+	//this should -never- happen
+	default:
+		lcd.setCursor(13, 0);
+		lcd.print("ERROR");
+		break;
+	}
+};
+
+void Menu::printStandby() {
+	//Print time line
+	lcd.setCursor(5, 0);
+	lcd.print("TIME : ");
+	lcd.setCursor(12, 0);
+	if (clockTime->hour >= 10) {
+		lcd.print(clockTime->hour);
+	}
+	else {
+		lcd.setCursor(13, 0);
+		lcd.print(clockTime->hour);
+	}
+	lcd.setCursor(14, 0);
+	lcd.print(":");
+
+	lcd.setCursor(15, 0);
+	if (clockTime->min >= 10) {
+		lcd.print(clockTime->min);
+	}
+	else {
+		lcd.print(0);
+		lcd.setCursor(16, 0);
+		lcd.print(clockTime->min);
+	}
+	lcd.setCursor(17, 0);
+	lcd.print(":");
+
+	lcd.setCursor(18, 0);
+	if (clockTime->sec >= 10) {
+		lcd.print(clockTime->sec);
+	}
+	else {
+		lcd.print(0);
+		lcd.setCursor(19, 0);
+		lcd.print(clockTime->sec);
+	}
+	//print feed line
+	lcd.setCursor(0, 1);
+	lcd.print("NEXT FEED@: ");
+	lcd.setCursor(12, 1);
+	if (feedTime.hour >= 10) {
+		lcd.print(feedTime.hour);
+	}
+	else {
+		lcd.setCursor(13, 1);
+		lcd.print(feedTime.hour);
+	}
+	lcd.setCursor(14, 1);
+	lcd.print(":");
+
+	lcd.setCursor(15, 1);
+	if (feedTime.min >= 10) {
+		lcd.print(feedTime.min);
+	}
+	else {
+		lcd.print(0);
+		lcd.setCursor(16, 1);
+		lcd.print(feedTime.min);
+	}
+	lcd.setCursor(17, 1);
+	lcd.print(":");
+
+	lcd.setCursor(18, 1);
+	if (feedTime.sec >= 10) {
+		lcd.print(feedTime.sec);
+	}
+	else {
+		lcd.print(0);
+		lcd.setCursor(19, 1);
+		lcd.print(feedTime.sec);
+	}
+
+	//Print Load Line
+	//Max of 15 total load bars
 	lcd.setCursor(0, 4);
 	lcd.print("LOAD:");
 	//Fill Full Load Positions
@@ -27,59 +180,113 @@ void Menu::printLoad() {
 		lcd.LiquidCrystal::write((uint8_t)1);
 	}
 }
-
-//Sets the load variable of the class
-void Menu::setLoad(int load) {
-	if (load > 15) {
-		load = 15;
-	}
-	if (load < 0) {
-		load = 0;
-	}
-	Menu::load = load;
-}
-
-//Sets variable corresponding to hours till the next feed
-void Menu::setETA(int hours) {
-	Menu::hours = hours;
-}
-
-//sets variable corresponding till time till next feed
-void Menu::setFeed(int time) {
-	Menu::feedTime = time;
-}
-
-//These functions were made only for testing the motor encoder. Delete when not needed.
-void Menu::testPrint(long test) {
-	lcd.setCursor(0, 2);
-	lcd.print(test);
-}
-void Menu::testPrint2(long test) {
-	lcd.setCursor(6, 2);
-	lcd.print(test);
-}
-
-//prints the line with information that tells user when the next estimated refill is
-void Menu::printETA() {
-	lcd.setCursor(0, 1);
-	lcd.print("Refill ETA :");
-	lcd.setCursor(13, 1);
-	lcd.print(hours);
-	lcd.setCursor(16, 1);
-	lcd.print("Hrs");
-}
-
-//prints the line that informs when the animal will be fed next
-void Menu::printFeed() {
-	lcd.setCursor(0, 0);
-	lcd.print("Next Feed @: ");
-	lcd.setCursor(13, 0);
-	lcd.print(feedTime);
-}
-
 //Updates the screen based on all current information in the class
 void Menu::update() {
-	printFeed();
-	printETA();
-	printLoad();
+	//Will reset the menu state to the standby screen if the program has gone
+	//10 seconds without user input on the option select screen
+	if (menuState != STANDBY && clockTime > (lastInputTime + 10)) {
+		menuState = STANDBY;
+		lcd.begin(20, 4);
+	}
+	if (menuState == STANDBY) {
+		lcd.createChar(0, (uint8_t*)load_full);
+		lcd.createChar(1, (uint8_t*)load_empty);
+		printStandby();
+	}
+	else {
+		this->printOptions();
+	}
+}
+
+//FIX LATER--The interrupt and this function used during it is somehow causing error characters
+//FIX LATER--to occasionally appear during rotary turn events. Delays in function mitigate
+//FIX LATER--this effect somewhat.
+void Menu::update(UserInput userInput) {
+	lastInputTime << clockTime;
+	if (menuState == STANDBY) {
+		menuState = OPTION_TIME;
+	}
+	if (userInput == LEFT && menuState != OPTION_TIME){
+		menuState = static_cast<MenuState>(menuState - 1);
+	}
+    else if (userInput == RIGHT && menuState != OPTION_DEBUG) {
+	menuState = static_cast<MenuState>(menuState + 1);
+}
+	delay(50);
+	lcd.begin(20, 4);
+	lcd.createChar(0, (uint8_t*)load_full);
+	lcd.createChar(1, (uint8_t*)load_empty);
+	delay(150);
+}
+
+
+bool operator>(const Time& time1, const Time& time2) {
+	if (time1.hour > time2.hour) {
+		return true;
+	}
+	else if (time1.hour == time2.hour && time1.min > time2.min) {
+		return true;
+	}
+	else if (time1.hour == time2.hour && time1.min == time2.min && time1.sec > time2.sec) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+bool operator>(const Time* time1, const Time& time2) {
+	if (time1->hour > time2.hour) {
+		return true;
+	}
+	else if (time1->hour == time2.hour && time1->min > time2.min) {
+		return true;
+	}
+	else if (time1->hour == time2.hour && time1->min == time2.min && time1->sec > time2.sec) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+Time operator+(const Time& time1, const int rightsum) {
+	Time returntime;
+	returntime.sec = time1.sec + rightsum;
+	returntime.min = time1.min;
+	returntime.hour = time1.hour;
+	bool pass = false;
+	while (pass == false) {
+		if (returntime.sec >= 60) {
+			returntime.min += 1;
+			returntime.sec -= 60;
+		}
+		else {
+			pass = true;
+		}
+	}
+	pass = false;
+	while (pass == false) {
+		if (returntime.min >= 60) {
+			returntime.hour += 1;
+			returntime.min -= 60;
+		}
+		else {
+			pass = true;
+		}
+	}
+	pass = false;
+	while (pass == false) {
+		if (returntime.hour >= 24) {
+			returntime.hour -= 24;
+		}
+		else {
+			pass = true;
+		}
+	}
+	return returntime;
+}
+
+void operator<<(Time& time1, const Time* time2) {
+	time1.sec = time2->sec;
+	time1.min = time2->min;
+	time1.hour = time2->hour;
 }

@@ -11,7 +11,11 @@ void FeederController::dispenseFood() {
 	menu->testPrint2(value);
 }
 
-FeederController::FeederController(Menu* menu, AS5040* encoder) {
+
+FeederController::FeederController(Menu* menu, AS5040* encoder){
 	FeederController::menu = menu;
 	FeederController::myAS5040 = encoder;
+	rotaryPosition = 0;
 }
+
+
