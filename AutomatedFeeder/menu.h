@@ -5,14 +5,20 @@
 
 
 enum MenuState { STANDBY, OPTION_TIME, OPTION_FEEDTIME, OPTION_FEEDVOLUME, OPTION_EXIT, OPTION_DEBUG };
+enum OptionState { OUTSIDE, STATE1, STATE2, STATE3, STATE4};
+enum TimeSetState { OUTSIDE_TIME, SETHOUR, SETMIN, SETSEC };
 enum UserInput { NONE, LEFT, RIGHT, BUTTON };
 
 class Menu {
 private:
+	void resetScreen();
 	void printOptions();
 	void printStandby();
+	void printOption_Time();
 
 	MenuState menuState = STANDBY;
+	OptionState optionState = OUTSIDE;
+	TimeSetState timeSetState = OUTSIDE_TIME;
 
 	//Character for a full load bar
 	byte load_full[8] = {
@@ -37,13 +43,26 @@ private:
 		B11111,
 	};
 
+	byte arrow_up[8] = {
+		B00100,
+		B01110,
+		B10101,
+		B10101,
+		B00100,
+		B00100,
+		B00100,
+		B00100,
+	};
+
 	LiquidCrystal lcd;
 
 	bool resetFlag = false;
 	int load;
 	int hours;
+	int tempTime = 0;
 	Time feedTime;
 
+	DS3231* rtcClock;
 	Time* clockTime;
 	Time lastInputTime;
 
@@ -51,6 +70,9 @@ public:
 	void setLoad(int load);
 	void setFeed(int hr, int min, int sec);
 	void flagReset();
+	void menuChoiceIncrement();
+	void menuChoiceDecrement();
+	void passClock(DS3231* rtcClock);
 
 
 	//TESTING FUNCTIONS; DELETE LATER
@@ -60,8 +82,7 @@ public:
 	void print(int column, int row, int test);
 	//END TEST FUNCTIONS
 
-	void update();
-	void update(UserInput userinput);
+	void update(UserInput userinput = NONE);
 
 	Menu(int RS, int EN, int D4, int D5, int D6, int D7, Time* clockTime);
 };

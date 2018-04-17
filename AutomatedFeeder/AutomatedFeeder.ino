@@ -63,8 +63,9 @@ void setup() {
 	//clock.setDate(1, 2, 1920);
 	menu.setLoad(5);
 	menu.setFeed(10, 25, 0);
+	menu.passClock(&clock);
 
-	pinMode(1, INPUT);
+	pinMode( ROTARY_PIN_SW , INPUT);
 
 	attachInterrupt(0, checkUserInput, CHANGE);
 	attachInterrupt(1, checkUserInput, CHANGE);
@@ -88,8 +89,6 @@ void loop() {
 	lastButton = currentButton;
 	delay(50);
 	//Feeder.dispenseFood();
-
-
 	//Testing Shit DELETE LATER
 	//int hour = time.hour;
 	//int min = time.min;

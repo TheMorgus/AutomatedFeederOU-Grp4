@@ -8,7 +8,16 @@ Menu::Menu(int EN, int RS, int D4, int D5, int D6, int D7, Time* clockTime): lcd
 	lcd.begin(20, 4);
 	lcd.createChar(0, (uint8_t*)load_full);
 	lcd.createChar(1, (uint8_t*)load_empty);
+	lcd.createChar(2, (uint8_t*)arrow_up);
 	this->clockTime = clockTime;
+}
+
+
+void Menu::resetScreen() {
+	lcd.begin(20, 4);
+	lcd.createChar(0, (uint8_t*)load_full);
+	lcd.createChar(1, (uint8_t*)load_empty);
+	lcd.createChar(2, (uint8_t*)arrow_up);
 }
 
 
@@ -28,6 +37,41 @@ void Menu::setFeed(int hr, int min, int sec) {
 	Menu::feedTime.hour = hr;
 	Menu::feedTime.min = min;
 	Menu::feedTime.sec = sec;
+}
+
+void Menu::menuChoiceIncrement() {
+	if (timeSetState != OUTSIDE_TIME) {
+		tempTime++;
+		if (tempTime >= 60) {
+			tempTime = 0;
+		}
+	}
+	else if (optionState == OUTSIDE && menuState != OPTION_DEBUG) {
+		menuState = static_cast<MenuState>(menuState + 1);
+	}
+	else if (optionState != OUTSIDE && optionState != STATE4)
+		optionState = static_cast<OptionState>(optionState + 1);
+
+}
+
+void Menu::menuChoiceDecrement() {
+	if (timeSetState != OUTSIDE_TIME) {
+		tempTime--;
+		if (tempTime <= 0) {
+			tempTime = 59;
+		}
+	}
+	else if (optionState == OUTSIDE && menuState != OPTION_TIME) {
+		menuState = static_cast<MenuState>(menuState - 1);
+	}
+	else if (optionState != OUTSIDE && optionState != STATE1)
+		optionState = static_cast<OptionState>(optionState - 1);
+
+}
+
+
+void Menu::passClock(DS3231* rtcClock) {
+	Menu::rtcClock = rtcClock;
 }
 
 //These functions were made only for testing the motor encoder. !!DELETE WHEN NO LONGER NECESSARY!!
@@ -181,53 +225,180 @@ void Menu::printStandby() {
 	}
 }
 
-void Menu::flagReset() {
-	resetFlag = true;
-}
-//Updates the screen based on all current information in the class
-void Menu::update() {
-	if (resetFlag == true) {
-		delay(75);
-		lcd.begin(20, 4);
-		lcd.createChar(0, (uint8_t*)load_full);
-		lcd.createChar(1, (uint8_t*)load_empty);
-		resetFlag = false;
-	}
-	//Will reset the menu state to the standby screen if the program has gone
-	//10 seconds without user input on the option select screen
-	if (menuState != STANDBY && clockTime > (lastInputTime + 10)) {
-		menuState = STANDBY;
-		resetFlag = true;
-	}
-	if (menuState == STANDBY) {
-		lcd.createChar(0, (uint8_t*)load_full);
-		lcd.createChar(1, (uint8_t*)load_empty);
-		printStandby();
+
+void Menu::printOption_Time() {
+
+	if (timeSetState == OUTSIDE) {
+		lcd.setCursor(4, 0);
+		lcd.print("ADJUST TIME");
+		lcd.setCursor(2, 1);
+		if (clockTime->hour >= 10) {
+			lcd.print(clockTime->hour);
+		}
+		else {
+			lcd.setCursor(3, 1);
+			lcd.print(clockTime->hour);
+		}
+		lcd.setCursor(6, 1);
+		lcd.print(":");
+
+		lcd.setCursor(9, 1);
+		if (clockTime->min >= 10) {
+			lcd.print(clockTime->min);
+		}
+		else {
+			lcd.print(0);
+			lcd.setCursor(10, 1);
+			lcd.print(clockTime->min);
+		}
+		lcd.setCursor(13, 1);
+		lcd.print(":");
+
+		lcd.setCursor(16, 1);
+		if (clockTime->sec >= 10) {
+			lcd.print(clockTime->sec);
+		}
+		else {
+			lcd.print(0);
+			lcd.setCursor(17, 1);
+			lcd.print(clockTime->sec);
+		}
+		switch (optionState) {
+		case STATE1:
+			lcd.setCursor(3, 2);
+			lcd.LiquidCrystal::write((uint8_t)2);
+			lcd.setCursor(3, 3);
+			lcd.print("|");
+			break;
+		case STATE2:
+			lcd.setCursor(10, 2);
+			lcd.LiquidCrystal::write((uint8_t)2);
+			lcd.setCursor(10, 3);
+			lcd.print("|");
+			break;
+		case STATE3:
+			lcd.setCursor(17, 2);
+			lcd.LiquidCrystal::write((uint8_t)2);
+			lcd.setCursor(17, 3);
+			lcd.print("|");
+			break;
+		case STATE4:
+			lcd.setCursor(15, 4);
+			lcd.print("EXIT");
+		}
 	}
 	else {
-		this->printOptions();
+		lcd.setCursor(4, 0);
+		switch (timeSetState) {
+		case SETHOUR:
+			lcd.print("ADJUST HOUR:");
+			break;
+		case SETMIN:
+			lcd.print("ADJUST MIN:");
+			break;
+		case SETSEC:
+			lcd.print("ADJUST SEC:");
+			break;
+		}
+		for (int i = 0; i < 4; i++){
+			lcd.setCursor(9 + (i * 3), 1);
+			if ((i + tempTime) >= 60) {
+				lcd.print(i + tempTime - 60);
+			}
+			else {
+				lcd.print(i + tempTime);
+			}
+		}
+		for (int i = 0; i > -4; i--) {
+			lcd.setCursor(9 + (i * 3), 1);
+			if ((i + tempTime) < 0) {
+				lcd.print(60 + i + tempTime);
+			}
+			else {
+				lcd.print(i + tempTime);
+			}
+		}
+
+		lcd.setCursor(9, 2);
+		lcd.LiquidCrystal::write((uint8_t)2);
+		lcd.setCursor(9, 3);
+		lcd.print("|");
 	}
+}
+
+void Menu::flagReset() {
+	resetFlag = true;
 }
 
 //FIX LATER--The interrupt and this function used during it is somehow causing error characters
 //FIX LATER--to occasionally appear during rotary turn events. Delays in function mitigate
 //FIX LATER--this effect somewhat.
 void Menu::update(UserInput userInput) {
-	resetFlag = true;
-	lastInputTime << clockTime;
+	if (userInput == NONE && menuState != STANDBY && clockTime > (lastInputTime + 10)) {
+		menuState = STANDBY;
+		optionState = OUTSIDE;
+		timeSetState = OUTSIDE_TIME;
+		resetFlag = true;
+	}
+	else if (userInput != NONE) {
+		resetFlag = true;
+		lastInputTime << clockTime;
+		if (userInput == BUTTON && timeSetState == SETHOUR) {
+			rtcClock->setTime(tempTime, clockTime->min, clockTime->sec);
+			menuState = STANDBY;
+			optionState = OUTSIDE;
+			timeSetState = OUTSIDE_TIME;
+		}
+		if (menuState == STANDBY) {
+			menuState = OPTION_TIME;
+		}
+		else if (userInput == LEFT) {
+			menuChoiceDecrement();
+		}
+		else if (userInput == RIGHT && menuState != OPTION_DEBUG) {
+			menuChoiceIncrement();
+		}
+		else if (userInput == BUTTON && optionState == OUTSIDE) {
+			optionState = STATE1;
+		}
+		else if (userInput == BUTTON && menuState == OPTION_TIME) {
+			switch (optionState) {
+			case STATE1:
+				timeSetState = SETHOUR;
+				break;
+			case STATE2:
+				timeSetState = SETMIN;
+				break;
+			case STATE3:
+				timeSetState = SETSEC;
+			case STATE4:
+				optionState = OUTSIDE;
+			}
+		}
+
+		if (userInput == BUTTON && menuState == OPTION_EXIT) {
+			menuState = STANDBY;
+			optionState = OUTSIDE;
+		}
+	}
+	if (resetFlag == true) {
+		delay(75);
+		this->resetScreen();
+		resetFlag = false;
+	}
 	if (menuState == STANDBY) {
-		menuState = OPTION_TIME;
+		printStandby();
 	}
-	if (userInput == LEFT && menuState != OPTION_TIME){
-		menuState = static_cast<MenuState>(menuState - 1);
+	else if (optionState == OUTSIDE) {
+		this->printOptions();
 	}
-    else if (userInput == RIGHT && menuState != OPTION_DEBUG) {
-	menuState = static_cast<MenuState>(menuState + 1);
+	else {
+		switch (menuState) {
+		case OPTION_TIME:
+			this->printOption_Time();
+			break;
 }
-	//delay(75);
-	//lcd.begin(20, 4);
-	//lcd.createChar(0, (uint8_t*)load_full);
-	//lcd.createChar(1, (uint8_t*)load_empty);
+	}
 }
 
 
