@@ -39,6 +39,7 @@ private:
 
 	LiquidCrystal lcd;
 
+	bool resetFlag = false;
 	int load;
 	int hours;
 	Time feedTime;
@@ -49,6 +50,7 @@ private:
 public:
 	void setLoad(int load);
 	void setFeed(int hr, int min, int sec);
+	void flagReset();
 
 
 	//TESTING FUNCTIONS; DELETE LATER

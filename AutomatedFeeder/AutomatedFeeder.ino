@@ -27,12 +27,15 @@ const int LCDD5_PIN = 5;
 const int LCDD6_PIN = 6;
 const int LCDD7_PIN = 7;
 //ROTARY PINS
-const int ROTARY_PIN_SW = 1;
+const int ROTARY_PIN_SW = 0;
 const int ROTARY_PIN_CLK = 2;
 const int ROTARY_PIN_DT = 3;
 
 int rotaryposition = 0;
 Time time;
+
+boolean lastButton = HIGH;
+boolean currentButton = HIGH;
 
 
 Rotary rotary(ROTARY_PIN_DT, ROTARY_PIN_CLK);
@@ -44,6 +47,7 @@ DS3231 clock(DS3231_PIN_SDL, DS3231_PIN_SCL);
 //Interupt on rotary encoder movement.
 void checkUserInput() {
 	char result = rotary.process();
+	menu.flagReset();
 	if (result == DIR_CW) {
 		menu.update(LEFT);
 	}
@@ -64,12 +68,24 @@ void setup() {
 
 	attachInterrupt(0, checkUserInput, CHANGE);
 	attachInterrupt(1, checkUserInput, CHANGE);
+
+	//test delete
+	//Serial.begin(9600);
 }
 
 
 void loop() {
 	time = clock.getTime();
-	menu.update();
+	currentButton = debounce(ROTARY_PIN_SW);
+	//testdelete
+	//Serial.print(digitalRead(ROTARY_PIN_SW));
+	if (lastButton == HIGH && currentButton == LOW) {
+		menu.update(BUTTON);
+	}
+	else {
+		menu.update();
+	}
+	lastButton = currentButton;
 	delay(50);
 	//Feeder.dispenseFood();
 

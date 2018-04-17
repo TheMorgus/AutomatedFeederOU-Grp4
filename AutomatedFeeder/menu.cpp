@@ -3,7 +3,7 @@
 #include "DS3231.h"
 
 //Constructor
-//Initializes LCD and creates special characters
+//Initializes LCD, creates special characters, gives menu the global clock pointer
 Menu::Menu(int EN, int RS, int D4, int D5, int D6, int D7, Time* clockTime): lcd(EN, RS, D4, D5, D6, D7) {
 	lcd.begin(20, 4);
 	lcd.createChar(0, (uint8_t*)load_full);
@@ -180,13 +180,24 @@ void Menu::printStandby() {
 		lcd.LiquidCrystal::write((uint8_t)1);
 	}
 }
+
+void Menu::flagReset() {
+	resetFlag = true;
+}
 //Updates the screen based on all current information in the class
 void Menu::update() {
+	if (resetFlag == true) {
+		delay(75);
+		lcd.begin(20, 4);
+		lcd.createChar(0, (uint8_t*)load_full);
+		lcd.createChar(1, (uint8_t*)load_empty);
+		resetFlag = false;
+	}
 	//Will reset the menu state to the standby screen if the program has gone
 	//10 seconds without user input on the option select screen
 	if (menuState != STANDBY && clockTime > (lastInputTime + 10)) {
 		menuState = STANDBY;
-		lcd.begin(20, 4);
+		resetFlag = true;
 	}
 	if (menuState == STANDBY) {
 		lcd.createChar(0, (uint8_t*)load_full);
@@ -202,6 +213,7 @@ void Menu::update() {
 //FIX LATER--to occasionally appear during rotary turn events. Delays in function mitigate
 //FIX LATER--this effect somewhat.
 void Menu::update(UserInput userInput) {
+	resetFlag = true;
 	lastInputTime << clockTime;
 	if (menuState == STANDBY) {
 		menuState = OPTION_TIME;
@@ -212,11 +224,10 @@ void Menu::update(UserInput userInput) {
     else if (userInput == RIGHT && menuState != OPTION_DEBUG) {
 	menuState = static_cast<MenuState>(menuState + 1);
 }
-	delay(50);
-	lcd.begin(20, 4);
-	lcd.createChar(0, (uint8_t*)load_full);
-	lcd.createChar(1, (uint8_t*)load_empty);
-	delay(150);
+	//delay(75);
+	//lcd.begin(20, 4);
+	//lcd.createChar(0, (uint8_t*)load_full);
+	//lcd.createChar(1, (uint8_t*)load_empty);
 }
 
 

@@ -19,4 +19,4 @@ public:
 	FeederController(Menu* menu, AS5040* encoder);
 };
 
-
+boolean debounce(int button);

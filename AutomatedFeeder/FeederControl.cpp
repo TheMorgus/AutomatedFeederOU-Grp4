@@ -19,3 +19,18 @@ FeederController::FeederController(Menu* menu, AS5040* encoder){
 }
 
 
+
+boolean debounce(int buttonpin) {
+	boolean state1;
+	boolean state2;
+	boolean state3;
+	do {
+		state1 = digitalRead(buttonpin);
+		delay(5);
+		state2 = digitalRead(buttonpin);
+		delay(5);
+		state3 = digitalRead(buttonpin);
+		delay(5);
+	} while (state1 != state2 || state1 != state3);
+	return state1;
+}
