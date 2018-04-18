@@ -15,6 +15,7 @@ private:
 	void printOptions();
 	void printStandby();
 	void printOption_Time();
+	void printOption_Feedtime();
 	void buttonPush();
 
 	MenuState menuState = STANDBY;

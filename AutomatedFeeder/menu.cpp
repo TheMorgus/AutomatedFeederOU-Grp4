@@ -126,7 +126,9 @@ void Menu::buttonPush() {
 			break;
 		}
 	}
+	else if (menuState == OPTION_FEEDTIME) {
 
+	}
 	else if (menuState == OPTION_EXIT) {
 		menuState = STANDBY;
 		optionState = OUTSIDE;
@@ -397,6 +399,35 @@ void Menu::printOption_Time() {
 	}
 }
 
+void Menu::printOption_Feedtime() {
+	int numFeedTimes= 4; // temp value delete
+
+	for (int i = 0; i < numFeedTimes; i++) {
+		lcd.setCursor(3, i);
+		lcd.print("F.Time :");
+		lcd.setCursor(9, i);
+		lcd.print(i + 1);
+	}
+	switch (optionState) {
+	case STATE1:
+		lcd.setCursor(0, 0);
+		lcd.print("->");
+		break;
+	case STATE2:
+		lcd.setCursor(0, 1);
+		lcd.print("->");
+		break;
+	case STATE3:
+		lcd.setCursor(0, 2);
+		lcd.print("->");
+		break;
+	case STATE4:
+		lcd.setCursor(0, 3);
+		lcd.print("->");
+		break;
+	}
+}
+
 void Menu::flagReset() {
 	resetFlag = true;
 }
@@ -446,6 +477,8 @@ void Menu::update(UserInput userInput) {
 		case OPTION_TIME:
 			this->printOption_Time();
 			break;
+		case OPTION_FEEDTIME:
+			this->printOption_Feedtime();
 }
 	}
 }
