@@ -70,6 +70,16 @@ void setup() {
 	attachInterrupt(0, checkUserInput, CHANGE);
 	attachInterrupt(1, checkUserInput, CHANGE);
 
+	menu.setFeedExist(0, true);
+	menu.setFeedExist(1, true);
+	menu.setFeedExist(2, true);
+	menu.setFeedExist(3, true);
+	menu.setFeedTime(0, 5, 30,0);
+	menu.setFeedTime(1, 15, 15, 0);
+	menu.setFeedTime(2, 3, 30, 0);
+	menu.setFeedTime(3, 6, 5, 6);
+	menu.bubbleSortFeedData();
+
 	//test delete
 	//Serial.begin(9600);
 }
@@ -87,7 +97,7 @@ void loop() {
 		menu.update();
 	}
 	lastButton = currentButton;
-	delay(50);
+	delay(100);
 	//Feeder.dispenseFood();
 	//Testing Shit DELETE LATER
 	//int hour = time.hour;

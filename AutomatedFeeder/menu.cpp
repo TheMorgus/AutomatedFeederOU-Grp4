@@ -21,6 +21,30 @@ void Menu::resetScreen() {
 }
 
 
+void Menu::bubbleSortFeedData() {
+	FeedData tempFeedData;
+	//sort from highest time to the lowest time
+	for (int j = 0; j < 3; j++) {
+		for (int i = 0 + j; i < 3; i++) {
+			if (feedData[3 - i].time > feedData[3 - i - 1].time) {
+				tempFeedData = feedData[3 - i];
+				feedData[3 - i] = feedData[3 - i - 1];
+				feedData[3 - i - 1] = tempFeedData;
+			}
+		}
+	}
+	//sort all non-existant feed times to the end
+	for (int j = 0; j < 3; j++) {
+		for (int i = 0 + j; i < 3; i++) {
+			if (feedData[i].exist == false && feedData[i + 1].exist) {
+				tempFeedData = feedData[i + 1];
+				feedData[i + 1] = feedData[i];
+				feedData[i] = tempFeedData;
+			}
+		}
+	}
+}
+
 //Sets the load variable of the class
 void Menu::setLoad(int load) {
 	if (load > 15) {
@@ -53,12 +77,53 @@ void Menu::menuChoiceIncrement() {
 			}
 		}
 	}
+	else if (optionState != OUTSIDE ) {
+		if (menuState == OPTION_FEEDTIME && optionState != STATE9) {
+			switch(optionState) {
+			case STATE1:
+				if (feedData[0].exist) {
+					optionState = static_cast<OptionState>(optionState + 1);
+				}
+				else {
+					optionState = static_cast<OptionState>(optionState + 2);
+				}
+				break;
+			case STATE3:
+				if (feedData[1].exist) {
+					optionState = static_cast<OptionState>(optionState + 1);
+				}
+				else {
+					optionState = static_cast<OptionState>(optionState + 2);
+				}
+				break;
+			case STATE5:
+				if (feedData[2].exist) {
+					optionState = static_cast<OptionState>(optionState + 1);
+				}
+				else {
+					optionState = static_cast<OptionState>(optionState + 2);
+				}
+				break;
+			case STATE7:
+				if (feedData[3].exist) {
+					optionState = static_cast<OptionState>(optionState + 1);
+				}
+				else {
+					optionState = static_cast<OptionState>(optionState + 2);
+				}
+				break;
+			default:
+				optionState = static_cast<OptionState>(optionState + 1);
+				break;
+			}
+		}
+		else if (menuState != OPTION_FEEDTIME && optionState != STATE4) {
+			optionState = static_cast<OptionState>(optionState + 1);
+		}
+	}
 	else if (optionState == OUTSIDE && menuState != OPTION_DEBUG) {
 		menuState = static_cast<MenuState>(menuState + 1);
 	}
-	else if (optionState != OUTSIDE && optionState != STATE4)
-		optionState = static_cast<OptionState>(optionState + 1);
-
 }
 
 void Menu::menuChoiceDecrement() {
@@ -73,16 +138,58 @@ void Menu::menuChoiceDecrement() {
 			}
 		}
 	}
-	else if (optionState == OUTSIDE && menuState != OPTION_TIME) {
-		menuState = static_cast<MenuState>(menuState - 1);
+	else if (optionState != OUTSIDE && optionState != STATE1) {
+		if (menuState == OPTION_FEEDTIME) {
+			switch (optionState) {
+			case STATE3:
+				if (feedData[0].exist) {
+					optionState = static_cast<OptionState>(optionState - 1);
+				}
+				else {
+					optionState = static_cast<OptionState>(optionState - 2);
+				}
+				break;
+			case STATE5:
+				if (feedData[1].exist) {
+					optionState = static_cast<OptionState>(optionState - 1);
+				}
+				else {
+					optionState = static_cast<OptionState>(optionState - 2);
+				}
+				break;
+			case STATE7:
+				if (feedData[2].exist) {
+					optionState = static_cast<OptionState>(optionState - 1);
+				}
+				else {
+					optionState = static_cast<OptionState>(optionState - 2);
+				}
+				break;
+			case STATE9:
+				if (feedData[3].exist) {
+					optionState = static_cast<OptionState>(optionState - 1);
+				}
+				else {
+					optionState = static_cast<OptionState>(optionState - 2);
+				}
+				break;
+			default:
+				optionState = static_cast<OptionState>(optionState - 1);
+				break;
+			}
+		}
+		if (menuState != OPTION_FEEDTIME) {
+			optionState = static_cast<OptionState>(optionState - 1);
+		}
 	}
-	else if (optionState != OUTSIDE && optionState != STATE1)
-		optionState = static_cast<OptionState>(optionState - 1);
-
+	else if (optionState == OUTSIDE && menuState != OPTION_TIME) {
+			menuState = static_cast<MenuState>(menuState - 1);
+	}
 }
 
 void Menu::buttonPush() {
 
+	//if inside the time set portion of the menu
 	if (timeSetState != OUTSIDE_TIME) {
 		switch (menuState) {
 		case(OPTION_TIME):
@@ -109,15 +216,38 @@ void Menu::buttonPush() {
 			}
 			break;
 		case(OPTION_FEEDTIME):
+			int feedDataPosition;
+			//Get the array position of feed data time to modify based on 
+			//What choice the user picked on the options
+			if (optionState == STATE1) {
+				feedDataPosition = 0;
+			}
+			else if (optionState == STATE3) {
+				feedDataPosition = 1;
+			}
+			else if (optionState == STATE5) {
+				feedDataPosition = 2;
+			}
+			else if (optionState == STATE7) {
+				feedDataPosition = 3;
+			}
+			//Set the time data at the array position and then set the menu state
+			//to the next time state to set (Hr->Min->Sec)
+			//After seconds, sort the times, exit time adjustment and return to standby menu state
 			if (timeSetState == SETHOUR) {
+				this->setFeedExist(feedDataPosition, true);
+				feedData[feedDataPosition].time.hour = tempTime;
 				timeSetState = SETMIN;
 				tempTime = 0;
 			}
 			else if (timeSetState == SETMIN) {
+				feedData[feedDataPosition].time.min = tempTime;
 				timeSetState = SETSEC;
 				tempTime = 0;
 			}
 			else if (timeSetState == SETSEC) {
+				feedData[feedDataPosition].time.sec = tempTime;
+				this->bubbleSortFeedData();
 				menuState = STANDBY;
 				optionState = OUTSIDE;
 				timeSetState = OUTSIDE_TIME;
@@ -126,6 +256,7 @@ void Menu::buttonPush() {
 			break;
 		}
 	}
+	//if inside a particular option on the menu
 	else if (optionState != OUTSIDE) {
 		switch (menuState) {
 		case (OPTION_TIME):
@@ -146,18 +277,44 @@ void Menu::buttonPush() {
 			if (optionState == STATE1) {
 				timeSetState = SETHOUR;
 			}
-			if (optionState == STATE2) {
+			else if (optionState == STATE2) {
+				this->setFeedTime(0, 0, 0, 0);
+				this->setFeedExist(0, false);
+				this->bubbleSortFeedData();
+			}
+			else if (optionState == STATE3) {
 				timeSetState = SETHOUR;
 			}
-			if (optionState == STATE3) {
+			else if (optionState == STATE4) {
+				this->setFeedTime(1, 0, 0, 0);
+				this->setFeedExist(1, false);
+				this->bubbleSortFeedData();
+			}
+			else if (optionState == STATE5) {
 				timeSetState = SETHOUR;
 			}
-			if (optionState == STATE4) {
+			else if (optionState == STATE6) {
+				this->setFeedTime(2, 0, 0, 0);
+				this->setFeedExist(2, false);
+				this->bubbleSortFeedData();
+			}
+			else if (optionState == STATE7) {
 				timeSetState = SETHOUR;
+			}
+			else if (optionState == STATE8) {
+				this->setFeedTime(3, 0, 0, 0);
+				this->setFeedExist(3, false);
+				this->bubbleSortFeedData();
+			}
+			else if (optionState == STATE9) {
+				menuState = STANDBY;
+				optionState = OUTSIDE;
+				timeSetState = OUTSIDE_TIME;
 			}
 			break;
 		}
 	}
+	//if the menu is displaying the vailable options
 	else {
 		switch (menuState){
 		case OPTION_TIME:
@@ -178,6 +335,18 @@ void Menu::buttonPush() {
 		}
 	}
 	}
+
+void Menu::setFeedTime(int feedPosition, int hour, int min, int sec) {
+	feedData[feedPosition].time.hour = hour;
+	feedData[feedPosition].time.min = min;
+	feedData[feedPosition].time.sec = sec;
+}
+void Menu::setFeedVolume(int feedPosition, int volume) {
+	feedData[feedPosition].volume = volume;
+}
+void Menu::setFeedExist(int feedPosition, bool existState) {
+	feedData[feedPosition].exist = existState;
+}
 
 void Menu::passClock(DS3231* rtcClock) {
 	Menu::rtcClock = rtcClock;
@@ -444,29 +613,80 @@ void Menu::printOption_Feedtime() {
 	int numFeedTimes= 4; // temp value delete
 
 	if (timeSetState == OUTSIDE_TIME) {
-		for (int i = 0; i < numFeedTimes; i++) {
-			lcd.setCursor(3, i);
-			lcd.print("F.Time :");
-			lcd.setCursor(9, i);
-			lcd.print(i + 1);
+		if (optionState == STATE9) {
+			lcd.setCursor(8, 1);
+			lcd.print("Exit");
 		}
-		switch (optionState) {
-		case STATE1:
-			lcd.setCursor(0, 0);
-			lcd.print("->");
-			break;
-		case STATE2:
-			lcd.setCursor(0, 1);
-			lcd.print("->");
-			break;
-		case STATE3:
-			lcd.setCursor(0, 2);
-			lcd.print("->");
-			break;
-		case STATE4:
-			lcd.setCursor(0, 3);
-			lcd.print("->");
-			break;
+		else {
+			for (int i = 0; i < numFeedTimes; i++) {
+				if (feedData[i].exist == false) {
+					break;
+				}
+				lcd.setCursor(7, i);
+				lcd.print("T :");
+				lcd.setCursor(8, i);
+				lcd.print(i + 1);
+				if (feedData[i].time.hour >= 10) {
+					lcd.setCursor(11, i);
+				}
+				else {
+					lcd.setCursor(12, i);
+				}
+				lcd.print(feedData[i].time.hour);
+				lcd.setCursor(13, i);
+				lcd.print(":");
+				if (feedData[i].time.min >= 10) {
+					lcd.setCursor(14, i);
+				}
+				else {
+					lcd.setCursor(15, i);
+				}
+				lcd.print(feedData[i].time.min);
+				lcd.setCursor(16, i);
+				lcd.print(":");
+				if (feedData[i].time.sec >= 10) {
+					lcd.setCursor(17, i);
+				}
+				else {
+					lcd.setCursor(18, i);
+				}
+				lcd.print(feedData[i].time.sec);
+
+			}
+			switch (optionState) {
+			case STATE1:
+				lcd.setCursor(0, 0);
+				lcd.print("->Set");
+				break;
+			case STATE2:
+				lcd.setCursor(0, 0);
+				lcd.print("->Rem");
+				break;
+			case STATE3:
+				lcd.setCursor(0, 1);
+				lcd.print("->Set");
+				break;
+			case STATE4:
+				lcd.setCursor(0, 1);
+				lcd.print("->Rem");
+				break;
+			case STATE5:
+				lcd.setCursor(0, 2);
+				lcd.print("->Set");
+				break;
+			case STATE6:
+				lcd.setCursor(0, 2);
+				lcd.print("->Rem");
+				break;
+			case STATE7:
+				lcd.setCursor(0, 3);
+				lcd.print("->Set");
+				break;
+			case STATE8:
+				lcd.setCursor(0, 3);
+				lcd.print("->Rem");
+				break;
+			}
 		}
 	}
 	else {

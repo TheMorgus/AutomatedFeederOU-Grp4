@@ -5,11 +5,11 @@
 
 
 enum MenuState { STANDBY, OPTION_TIME, OPTION_FEEDTIME, OPTION_FEEDVOLUME, OPTION_EXIT, OPTION_DEBUG };
-enum OptionState { OUTSIDE, STATE1, STATE2, STATE3, STATE4};
+enum OptionState { OUTSIDE, STATE1, STATE2, STATE3, STATE4, STATE5, STATE6, STATE7, STATE8, STATE9};
 enum TimeSetState { OUTSIDE_TIME, SETHOUR, SETMIN, SETSEC };
 enum UserInput { NONE, LEFT, RIGHT, BUTTON };
 
-struct feedTimeArrays {
+struct FeedData{
 	Time time;
 	int volume;
 	bool exist;
@@ -69,6 +69,7 @@ private:
 	int hours;
 	int tempTime = 0;
 	Time feedTime;
+	FeedData feedData[4];
 
 	DS3231* rtcClock;
 	Time* clockTime;
@@ -82,6 +83,12 @@ public:
 	void menuChoiceDecrement();
 	void passClock(DS3231* rtcClock);
 
+	//MAKE PRIVATE LATER AFTER TESTING
+	void setFeedTime(int feedPosition, int hour, int min, int sec);
+	void setFeedVolume(int feedPosition, int volume);
+	void setFeedExist(int feedPosition, bool existState);
+	void bubbleSortFeedData();
+	//END OF PRIVATE LATER
 
 	//TESTING FUNCTIONS; DELETE LATER
 	void testPrint(long test);
