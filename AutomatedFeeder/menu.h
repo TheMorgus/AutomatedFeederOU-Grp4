@@ -7,26 +7,30 @@
 enum MenuState { STANDBY, OPTION_TIME, OPTION_FEEDTIME, OPTION_FEEDVOLUME, OPTION_EXIT, OPTION_DEBUG };
 enum OptionState { OUTSIDE, STATE1, STATE2, STATE3, STATE4, STATE5, STATE6, STATE7, STATE8, STATE9};
 enum TimeSetState { OUTSIDE_TIME, SETHOUR, SETMIN, SETSEC };
+enum VolumeSetState { OUTSIDE_VOLUME, SETWHOLEDIGIT, SETPARTIALDIGIT};
 enum UserInput { NONE, LEFT, RIGHT, BUTTON };
 
 struct FeedData{
 	Time time;
-	int volume;
+	double volume;
 	bool exist;
 };
 
 class Menu {
 private:
 	void resetScreen();
+	void returnToStandby();
 	void printOptions();
 	void printStandby();
 	void printOption_Time();
 	void printOption_Feedtime();
+	void printOption_FeedVolume();
 	void buttonPush();
 
 	MenuState menuState = STANDBY;
 	OptionState optionState = OUTSIDE;
 	TimeSetState timeSetState = OUTSIDE_TIME;
+	VolumeSetState volumeSetState = OUTSIDE_VOLUME;
 
 	//Character for a full load bar
 	byte load_full[8] = {
@@ -67,7 +71,7 @@ private:
 	bool resetFlag = false;
 	int load;
 	int hours;
-	int tempTime = 0;
+	int tempValue = 0;
 	Time feedTime;
 	FeedData feedData[4];
 
@@ -85,7 +89,7 @@ public:
 
 	//MAKE PRIVATE LATER AFTER TESTING
 	void setFeedTime(int feedPosition, int hour, int min, int sec);
-	void setFeedVolume(int feedPosition, int volume);
+	void setFeedVolume(int feedPosition, double volume);
 	void setFeedExist(int feedPosition, bool existState);
 	void bubbleSortFeedData();
 	//END OF PRIVATE LATER

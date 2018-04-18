@@ -20,6 +20,14 @@ void Menu::resetScreen() {
 	lcd.createChar(2, (uint8_t*)arrow_up);
 }
 
+void Menu::returnToStandby() {
+	menuState = STANDBY;
+	optionState = OUTSIDE;
+	timeSetState = OUTSIDE_TIME;
+	volumeSetState = OUTSIDE_VOLUME;
+	tempValue = 0;
+}
+
 
 void Menu::bubbleSortFeedData() {
 	FeedData tempFeedData;
@@ -65,15 +73,28 @@ void Menu::setFeed(int hr, int min, int sec) {
 
 void Menu::menuChoiceIncrement() {
 	if (timeSetState != OUTSIDE_TIME) {
-		tempTime++;
+		tempValue++;
 		if (timeSetState == SETHOUR) {
-			if (tempTime > 24) {
-				tempTime = 0;
+			if (tempValue > 24) {
+				tempValue = 0;
 			}
 		}
 		else {
-			if (tempTime > 59) {
-				tempTime = 0;
+			if (tempValue > 59) {
+				tempValue = 0;
+			}
+		}
+	}
+	else if (volumeSetState != OUTSIDE_VOLUME) {
+		tempValue++;
+		if (volumeSetState == SETWHOLEDIGIT) {
+			if (tempValue > 9) {
+				tempValue = 0;
+			}
+		}
+		else {
+			if (tempValue > 99) {
+				tempValue = 0;
 			}
 		}
 	}
@@ -117,8 +138,40 @@ void Menu::menuChoiceIncrement() {
 				break;
 			}
 		}
-		else if (menuState != OPTION_FEEDTIME && optionState != STATE4) {
+		else if (menuState == OPTION_TIME && optionState != STATE4) {
 			optionState = static_cast<OptionState>(optionState + 1);
+		}
+		else if (menuState == OPTION_FEEDVOLUME && optionState != STATE5) {
+			switch(optionState) {
+			case STATE1:
+				if (feedData[1].exist) {
+					optionState = static_cast<OptionState>(optionState + 1);
+				}
+				else {
+					optionState = STATE5;
+				}
+				break;
+			case STATE2:
+				if (feedData[2].exist) {
+					optionState = static_cast<OptionState>(optionState + 1);
+				}
+				else {
+					optionState = STATE5;
+				}
+				break;
+			case STATE3:
+				if (feedData[3].exist) {
+					optionState = static_cast<OptionState>(optionState + 1);
+				}
+				else {
+					optionState = STATE5;
+				}
+				break;
+			default:
+				optionState = static_cast<OptionState>(optionState + 1);
+				break;
+
+			}
 		}
 	}
 	else if (optionState == OUTSIDE && menuState != OPTION_DEBUG) {
@@ -128,13 +181,24 @@ void Menu::menuChoiceIncrement() {
 
 void Menu::menuChoiceDecrement() {
 	if (timeSetState != OUTSIDE_TIME) {
-		tempTime--;
-		if (tempTime <= 0) {
+		tempValue--;
+		if (tempValue < 0) {
 			if (timeSetState == SETHOUR) {
-				tempTime = 24;
+				tempValue = 24;
 			}
 			else {
-				tempTime = 59;
+				tempValue = 59;
+			}
+		}
+	}
+	else if (volumeSetState != OUTSIDE_VOLUME) {
+		tempValue--;
+		if (tempValue < 0) {
+			if (volumeSetState == SETWHOLEDIGIT) {
+				tempValue = 10;
+			}
+			else {
+				tempValue = 99;
 			}
 		}
 	}
@@ -178,8 +242,23 @@ void Menu::menuChoiceDecrement() {
 				break;
 			}
 		}
-		if (menuState != OPTION_FEEDTIME) {
+		else if (menuState == OPTION_TIME) {
 			optionState = static_cast<OptionState>(optionState - 1);
+		}
+		else if (menuState == OPTION_FEEDVOLUME){
+			switch (optionState) {
+			case STATE5:
+				for (int i = 0; i < 4; i++) {
+					if (feedData[3-i].exist) {
+						optionState = static_cast<OptionState>(4 - i);
+						break;
+					}
+				}
+				break;
+			default:
+				optionState = static_cast<OptionState>(optionState - 1);
+				break;
+			}
 		}
 	}
 	else if (optionState == OUTSIDE && menuState != OPTION_TIME) {
@@ -194,25 +273,16 @@ void Menu::buttonPush() {
 		switch (menuState) {
 		case(OPTION_TIME):
 			if (timeSetState == SETHOUR) {
-				rtcClock->setTime(tempTime, clockTime->min, clockTime->sec);
-				menuState = STANDBY;
-				optionState = OUTSIDE;
-				timeSetState = OUTSIDE_TIME;
-				tempTime = 0;
+				rtcClock->setTime(tempValue, clockTime->min, clockTime->sec);
+				this->returnToStandby();
 			}
 			else if (timeSetState == SETMIN) {
-				rtcClock->setTime(clockTime->hour, tempTime, clockTime->sec);
-				menuState = STANDBY;
-				optionState = OUTSIDE;
-				timeSetState = OUTSIDE_TIME;
-				tempTime = 0;
+				rtcClock->setTime(clockTime->hour, tempValue, clockTime->sec);
+				this->returnToStandby();
 			}
 			else if (timeSetState == SETSEC) {
-				rtcClock->setTime(clockTime->hour, clockTime->min, tempTime);
-				menuState = STANDBY;
-				optionState = OUTSIDE;
-				timeSetState = OUTSIDE_TIME;
-				tempTime = 0;
+				rtcClock->setTime(clockTime->hour, clockTime->min, tempValue);
+				this->returnToStandby();
 			}
 			break;
 		case(OPTION_FEEDTIME):
@@ -236,24 +306,45 @@ void Menu::buttonPush() {
 			//After seconds, sort the times, exit time adjustment and return to standby menu state
 			if (timeSetState == SETHOUR) {
 				this->setFeedExist(feedDataPosition, true);
-				feedData[feedDataPosition].time.hour = tempTime;
+				feedData[feedDataPosition].time.hour = tempValue;
 				timeSetState = SETMIN;
-				tempTime = 0;
+				tempValue = 0;
 			}
 			else if (timeSetState == SETMIN) {
-				feedData[feedDataPosition].time.min = tempTime;
+				feedData[feedDataPosition].time.min = tempValue;
 				timeSetState = SETSEC;
-				tempTime = 0;
+				tempValue = 0;
 			}
 			else if (timeSetState == SETSEC) {
-				feedData[feedDataPosition].time.sec = tempTime;
+				feedData[feedDataPosition].time.sec = tempValue;
 				this->bubbleSortFeedData();
-				menuState = STANDBY;
-				optionState = OUTSIDE;
-				timeSetState = OUTSIDE_TIME;
-				tempTime = 0;
+				this->returnToStandby();
 			}
 			break;
+		}
+	}
+	else if (volumeSetState != OUTSIDE_VOLUME) {
+		int feedDataPos;
+		if (optionState == STATE1) {
+			feedDataPos = 0;
+		}
+		else if (optionState == STATE2) {
+			feedDataPos = 1;
+		}
+		else if (optionState == STATE3) {
+			feedDataPos = 2;
+		}
+		else if (optionState == STATE4) {
+			feedDataPos = 3;
+		}
+		if (volumeSetState == SETWHOLEDIGIT) {
+			feedData[feedDataPos].volume = tempValue;
+			tempValue = 0;
+			volumeSetState = SETPARTIALDIGIT;
+		}
+		else {
+			feedData[feedDataPos].volume += tempValue / (double)100;
+			this->returnToStandby();
 		}
 	}
 	//if inside a particular option on the menu
@@ -279,37 +370,51 @@ void Menu::buttonPush() {
 			}
 			else if (optionState == STATE2) {
 				this->setFeedTime(0, 0, 0, 0);
+				this->setFeedVolume(0, 0);
 				this->setFeedExist(0, false);
 				this->bubbleSortFeedData();
+				optionState = STATE1;
 			}
 			else if (optionState == STATE3) {
 				timeSetState = SETHOUR;
 			}
 			else if (optionState == STATE4) {
 				this->setFeedTime(1, 0, 0, 0);
+				this->setFeedVolume(1, 0);
 				this->setFeedExist(1, false);
 				this->bubbleSortFeedData();
+				optionState = STATE1;
 			}
 			else if (optionState == STATE5) {
 				timeSetState = SETHOUR;
 			}
 			else if (optionState == STATE6) {
 				this->setFeedTime(2, 0, 0, 0);
+				this->setFeedVolume(2, 0);
 				this->setFeedExist(2, false);
 				this->bubbleSortFeedData();
+				optionState = STATE1;
 			}
 			else if (optionState == STATE7) {
 				timeSetState = SETHOUR;
 			}
 			else if (optionState == STATE8) {
 				this->setFeedTime(3, 0, 0, 0);
+				this->setFeedVolume(3, 0);
 				this->setFeedExist(3, false);
 				this->bubbleSortFeedData();
+				optionState = STATE1;
 			}
 			else if (optionState == STATE9) {
-				menuState = STANDBY;
-				optionState = OUTSIDE;
-				timeSetState = OUTSIDE_TIME;
+				this->returnToStandby();
+			}
+			break;
+		case OPTION_FEEDVOLUME:
+			if (optionState != STATE5) {
+				volumeSetState = SETWHOLEDIGIT;
+			}
+			else{
+				this->returnToStandby();
 			}
 			break;
 		}
@@ -324,6 +429,12 @@ void Menu::buttonPush() {
 			optionState = STATE1;
 			break;
 		case OPTION_FEEDVOLUME:
+			if (feedData[0].exist) {
+				optionState = STATE1;
+			}
+			else {
+				optionState = STATE5;
+			}
 			break;
 		case OPTION_EXIT:
 			menuState = STANDBY;
@@ -341,7 +452,7 @@ void Menu::setFeedTime(int feedPosition, int hour, int min, int sec) {
 	feedData[feedPosition].time.min = min;
 	feedData[feedPosition].time.sec = sec;
 }
-void Menu::setFeedVolume(int feedPosition, int volume) {
+void Menu::setFeedVolume(int feedPosition, double volume) {
 	feedData[feedPosition].volume = volume;
 }
 void Menu::setFeedExist(int feedPosition, bool existState) {
@@ -506,7 +617,7 @@ void Menu::printStandby() {
 
 void Menu::printOption_Time() {
 
-	if (timeSetState == OUTSIDE) {
+	if (timeSetState == OUTSIDE_TIME) {
 		lcd.setCursor(4, 0);
 		lcd.print("ADJUST TIME");
 		lcd.setCursor(2, 1);
@@ -585,20 +696,20 @@ void Menu::printOption_Time() {
 		}
 		for (int i = 0; i < 4; i++){
 			lcd.setCursor(9 + (i * 3), 1);
-			if ((i + tempTime) >= maxTimeDigit) {
-				lcd.print(i + tempTime - maxTimeDigit);
+			if ((i + tempValue) >= maxTimeDigit) {
+				lcd.print(i + tempValue - maxTimeDigit);
 			}
 			else {
-				lcd.print(i + tempTime);
+				lcd.print(i + tempValue);
 			}
 		}
 		for (int i = 0; i > -4; i--) {
 			lcd.setCursor(9 + (i * 3), 1);
-			if ((i + tempTime) < 0) {
-				lcd.print(maxTimeDigit + i + tempTime);
+			if ((i + tempValue) < 0) {
+				lcd.print(maxTimeDigit + i + tempValue);
 			}
 			else {
-				lcd.print(i + tempTime);
+				lcd.print(i + tempValue);
 			}
 		}
 
@@ -708,20 +819,20 @@ void Menu::printOption_Feedtime() {
 		}
 		for (int i = 0; i < 4; i++) {
 			lcd.setCursor(9 + (i * 3), 1);
-			if ((i + tempTime) >= maxTimeDigit) {
-				lcd.print(i + tempTime - maxTimeDigit);
+			if ((i + tempValue) >= maxTimeDigit) {
+				lcd.print(i + tempValue - maxTimeDigit);
 			}
 			else {
-				lcd.print(i + tempTime);
+				lcd.print(i + tempValue);
 			}
 		}
 		for (int i = 0; i > -4; i--) {
 			lcd.setCursor(9 + (i * 3), 1);
-			if ((i + tempTime) < 0) {
-				lcd.print(maxTimeDigit + i + tempTime);
+			if ((i + tempValue) < 0) {
+				lcd.print(maxTimeDigit + i + tempValue);
 			}
 			else {
-				lcd.print(i + tempTime);
+				lcd.print(i + tempValue);
 			}
 		}
 
@@ -729,6 +840,109 @@ void Menu::printOption_Feedtime() {
 		lcd.LiquidCrystal::write((uint8_t)2);
 		lcd.setCursor(9, 3);
 		lcd.print("|");
+	}
+}
+
+void Menu::printOption_FeedVolume() {
+	if (volumeSetState == OUTSIDE_VOLUME) {
+		if (optionState == STATE5) {
+			lcd.setCursor(8, 1);
+			lcd.print("Exit");
+		}
+		else {
+			int numFeedTimes = 4;
+
+			for (int i = 0; i < numFeedTimes; i++) {
+				if (feedData[i].exist == false) {
+					break;
+				}
+				lcd.setCursor(3, i);
+				lcd.print("F.Vol. :");
+				lcd.setCursor(9, i);
+				lcd.print(i);
+				lcd.setCursor(12, i);
+				lcd.print(feedData[i].volume);
+				lcd.setCursor(16, i);
+				lcd.print("cups");
+			}
+			switch (optionState) {
+			case STATE1:
+				lcd.setCursor(0, 0);
+				lcd.print("->");
+				break;
+			case STATE2:
+				lcd.setCursor(0, 1);
+				lcd.print("->");
+				break;
+			case STATE3:
+				lcd.setCursor(0, 2);
+				lcd.print("->");
+				break;
+			case STATE4:
+				lcd.setCursor(0, 3);
+				lcd.print("->");
+				break;
+			}
+		}
+	}
+	else {
+		int maxValue;
+		if (volumeSetState == SETWHOLEDIGIT) {
+			maxValue = 10;
+			lcd.setCursor(2, 0);
+			lcd.print("SET WHOLE DIGIT:");
+			for (int i = 0; i < 4; i++) {
+				lcd.setCursor(9 + (i * 3), 1);
+				if ((i + tempValue) >= maxValue) {
+					lcd.print(i + tempValue - maxValue);
+				}
+				else {
+					lcd.print(i + tempValue);
+				}
+			}
+			for (int i = 0; i > -4; i--) {
+				lcd.setCursor(9 + (i * 3), 1);
+				if ((i + tempValue) < 0) {
+					lcd.print(maxValue + i + tempValue);
+				}
+				else {
+					lcd.print(i + tempValue);
+				}
+			}
+
+			lcd.setCursor(9, 2);
+			lcd.LiquidCrystal::write((uint8_t)2);
+			lcd.setCursor(9, 3);
+			lcd.print("|");
+		}
+		else {
+			maxValue = 99;
+			lcd.setCursor(2, 0);
+			lcd.print("SET PARTIAL DIGIT");
+			for (int i = 0; i < 4; i++) {
+				lcd.setCursor(9 + (i * 3), 1);
+				if ((i + tempValue) >= maxValue) {
+					lcd.print(i + tempValue - maxValue);
+				}
+				else {
+					lcd.print(i + tempValue);
+				}
+			}
+			for (int i = 0; i > -4; i--) {
+				lcd.setCursor(9 + (i * 3), 1);
+				if ((i + tempValue) < 0) {
+					lcd.print(maxValue + i + tempValue);
+				}
+				else {
+					lcd.print(i + tempValue);
+				}
+			}
+
+			lcd.setCursor(9, 2);
+			lcd.LiquidCrystal::write((uint8_t)2);
+			lcd.setCursor(9, 3);
+			lcd.print("|");
+		}
 	}
 }
 
@@ -743,7 +957,8 @@ void Menu::update(UserInput userInput) {
 		menuState = STANDBY;
 		optionState = OUTSIDE;
 		timeSetState = OUTSIDE_TIME;
-		tempTime = 0;
+		volumeSetState = OUTSIDE_VOLUME;
+		tempValue = 0;
 		resetFlag = true;
 	}
 	//Change menu based parameters based on user input
@@ -769,13 +984,15 @@ void Menu::update(UserInput userInput) {
 		this->resetScreen();
 		resetFlag = false;
 	}
-	//Prints the scren based on the current state
+	//Prints the standby menu state
 	if (menuState == STANDBY) {
 		printStandby();
 	}
+	//If not on standby, and outside a particular option, print the entire option menu
 	else if (optionState == OUTSIDE) {
 		this->printOptions();
 	}
+	//Otherwise you're viewing a particular option, print that options respective menu
 	else {
 		switch (menuState) {
 		case OPTION_TIME:
@@ -783,6 +1000,10 @@ void Menu::update(UserInput userInput) {
 			break;
 		case OPTION_FEEDTIME:
 			this->printOption_Feedtime();
+			break;
+		case OPTION_FEEDVOLUME:
+			this->printOption_FeedVolume();
+			break;
 }
 	}
 }

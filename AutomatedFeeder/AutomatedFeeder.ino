@@ -70,6 +70,7 @@ void setup() {
 	attachInterrupt(0, checkUserInput, CHANGE);
 	attachInterrupt(1, checkUserInput, CHANGE);
 
+	//FOR TESTING DELETE LATER
 	menu.setFeedExist(0, true);
 	menu.setFeedExist(1, true);
 	menu.setFeedExist(2, true);
@@ -78,7 +79,12 @@ void setup() {
 	menu.setFeedTime(1, 15, 15, 0);
 	menu.setFeedTime(2, 3, 30, 0);
 	menu.setFeedTime(3, 6, 5, 6);
+	menu.setFeedVolume(0, 2.5);
+	menu.setFeedVolume(1, 1.5);
+	menu.setFeedVolume(2, 2.0);
+	menu.setFeedVolume(3, 1.0);
 	menu.bubbleSortFeedData();
+	//FOR TESTING DELETE LATER
 
 	//test delete
 	//Serial.begin(9600);
