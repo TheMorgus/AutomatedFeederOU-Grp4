@@ -42,8 +42,15 @@ void Menu::setFeed(int hr, int min, int sec) {
 void Menu::menuChoiceIncrement() {
 	if (timeSetState != OUTSIDE_TIME) {
 		tempTime++;
-		if (tempTime >= 60) {
-			tempTime = 0;
+		if (timeSetState == SETHOUR) {
+			if (tempTime > 24) {
+				tempTime = 0;
+			}
+		}
+		else {
+			if (tempTime > 59) {
+				tempTime = 0;
+			}
 		}
 	}
 	else if (optionState == OUTSIDE && menuState != OPTION_DEBUG) {
@@ -58,7 +65,12 @@ void Menu::menuChoiceDecrement() {
 	if (timeSetState != OUTSIDE_TIME) {
 		tempTime--;
 		if (tempTime <= 0) {
-			tempTime = 59;
+			if (timeSetState == SETHOUR) {
+				tempTime = 24;
+			}
+			else {
+				tempTime = 59;
+			}
 		}
 	}
 	else if (optionState == OUTSIDE && menuState != OPTION_TIME) {
@@ -69,6 +81,60 @@ void Menu::menuChoiceDecrement() {
 
 }
 
+void Menu::buttonPush() {
+	if (timeSetState != OUTSIDE_TIME) {
+		switch (timeSetState) {
+		case(SETHOUR):
+			rtcClock->setTime(tempTime, clockTime->min, clockTime->sec);
+			menuState = STANDBY;
+			optionState = OUTSIDE;
+			timeSetState = OUTSIDE_TIME;
+			tempTime = 0;
+			break;
+		case(SETMIN):
+			rtcClock->setTime(clockTime->hour, tempTime, clockTime->sec);
+			menuState = STANDBY;
+			optionState = OUTSIDE;
+			timeSetState = OUTSIDE_TIME;
+			tempTime = 0;
+			break;
+		case(SETSEC):
+			rtcClock->setTime(clockTime->hour, clockTime->min, tempTime);
+			menuState = STANDBY;
+			optionState = OUTSIDE;
+			timeSetState = OUTSIDE_TIME;
+			tempTime = 0;
+			break;
+		}
+	}
+	if (optionState == OUTSIDE && menuState != STANDBY) {
+		optionState = STATE1;
+	}
+	if (menuState == OPTION_TIME) {
+		switch (optionState) {
+		case STATE1:
+			timeSetState = SETHOUR;
+			break;
+		case STATE2:
+			timeSetState = SETMIN;
+			break;
+		case STATE3:
+			timeSetState = SETSEC;
+			break;
+		case STATE4:
+			optionState = OUTSIDE;
+			break;
+		}
+	}
+
+	else if (menuState == OPTION_EXIT) {
+		menuState = STANDBY;
+		optionState = OUTSIDE;
+		timeSetState = OUTSIDE_TIME;
+	}
+
+	
+}
 
 void Menu::passClock(DS3231* rtcClock) {
 	Menu::rtcClock = rtcClock;
@@ -285,25 +351,30 @@ void Menu::printOption_Time() {
 		case STATE4:
 			lcd.setCursor(15, 4);
 			lcd.print("EXIT");
+			break;
 		}
 	}
 	else {
 		lcd.setCursor(4, 0);
+		int maxTimeDigit;
 		switch (timeSetState) {
 		case SETHOUR:
 			lcd.print("ADJUST HOUR:");
+			maxTimeDigit = 25;
 			break;
 		case SETMIN:
 			lcd.print("ADJUST MIN:");
+			maxTimeDigit = 60;
 			break;
 		case SETSEC:
 			lcd.print("ADJUST SEC:");
+			maxTimeDigit = 60;
 			break;
 		}
 		for (int i = 0; i < 4; i++){
 			lcd.setCursor(9 + (i * 3), 1);
-			if ((i + tempTime) >= 60) {
-				lcd.print(i + tempTime - 60);
+			if ((i + tempTime) >= maxTimeDigit) {
+				lcd.print(i + tempTime - maxTimeDigit);
 			}
 			else {
 				lcd.print(i + tempTime);
@@ -312,7 +383,7 @@ void Menu::printOption_Time() {
 		for (int i = 0; i > -4; i--) {
 			lcd.setCursor(9 + (i * 3), 1);
 			if ((i + tempTime) < 0) {
-				lcd.print(60 + i + tempTime);
+				lcd.print(maxTimeDigit + i + tempTime);
 			}
 			else {
 				lcd.print(i + tempTime);
@@ -330,62 +401,40 @@ void Menu::flagReset() {
 	resetFlag = true;
 }
 
-//FIX LATER--The interrupt and this function used during it is somehow causing error characters
-//FIX LATER--to occasionally appear during rotary turn events. Delays in function mitigate
-//FIX LATER--this effect somewhat.
+
 void Menu::update(UserInput userInput) {
+	//If the user has not used the menu for 10 seconds, return to standby state
 	if (userInput == NONE && menuState != STANDBY && clockTime > (lastInputTime + 10)) {
 		menuState = STANDBY;
 		optionState = OUTSIDE;
 		timeSetState = OUTSIDE_TIME;
+		tempTime = 0;
 		resetFlag = true;
 	}
+	//Change menu based parameters based on user input
 	else if (userInput != NONE) {
 		resetFlag = true;
 		lastInputTime << clockTime;
-		if (userInput == BUTTON && timeSetState == SETHOUR) {
-			rtcClock->setTime(tempTime, clockTime->min, clockTime->sec);
-			menuState = STANDBY;
-			optionState = OUTSIDE;
-			timeSetState = OUTSIDE_TIME;
-		}
 		if (menuState == STANDBY) {
 			menuState = OPTION_TIME;
 		}
 		else if (userInput == LEFT) {
 			menuChoiceDecrement();
 		}
-		else if (userInput == RIGHT && menuState != OPTION_DEBUG) {
+		else if (userInput == RIGHT ) {
 			menuChoiceIncrement();
 		}
-		else if (userInput == BUTTON && optionState == OUTSIDE) {
-			optionState = STATE1;
-		}
-		else if (userInput == BUTTON && menuState == OPTION_TIME) {
-			switch (optionState) {
-			case STATE1:
-				timeSetState = SETHOUR;
-				break;
-			case STATE2:
-				timeSetState = SETMIN;
-				break;
-			case STATE3:
-				timeSetState = SETSEC;
-			case STATE4:
-				optionState = OUTSIDE;
-			}
-		}
-
-		if (userInput == BUTTON && menuState == OPTION_EXIT) {
-			menuState = STANDBY;
-			optionState = OUTSIDE;
+		else if (userInput == BUTTON) {
+			buttonPush();
 		}
 	}
+	//Resets the screen when reset flags are up
 	if (resetFlag == true) {
 		delay(75);
 		this->resetScreen();
 		resetFlag = false;
 	}
+	//Prints the scren based on the current state
 	if (menuState == STANDBY) {
 		printStandby();
 	}

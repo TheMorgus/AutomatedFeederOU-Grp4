@@ -20,12 +20,12 @@ const int ENCODERCHIPSELECTPIN = 8;
 const int DS3231_PIN_SCL = 11;
 const int DS3231_PIN_SDL = 10;
 //LCD PINS
-const int LCDRS_PIN = 12;
-const int LCDEN_PIN = 13;
-const int LCDD4_PIN = 4;
-const int LCDD5_PIN = 5;
-const int LCDD6_PIN = 6;
-const int LCDD7_PIN = 7;
+const int LCDRS_PIN = 4;
+const int LCDEN_PIN = 5;
+const int LCDD4_PIN = 6;
+const int LCDD5_PIN = 7;
+const int LCDD6_PIN = 8;
+const int LCDD7_PIN = 9;
 //ROTARY PINS
 const int ROTARY_PIN_SW = 0;
 const int ROTARY_PIN_CLK = 2;
