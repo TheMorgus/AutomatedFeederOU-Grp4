@@ -82,61 +82,102 @@ void Menu::menuChoiceDecrement() {
 }
 
 void Menu::buttonPush() {
+
 	if (timeSetState != OUTSIDE_TIME) {
-		switch (timeSetState) {
-		case(SETHOUR):
-			rtcClock->setTime(tempTime, clockTime->min, clockTime->sec);
-			menuState = STANDBY;
-			optionState = OUTSIDE;
-			timeSetState = OUTSIDE_TIME;
-			tempTime = 0;
+		switch (menuState) {
+		case(OPTION_TIME):
+			if (timeSetState == SETHOUR) {
+				rtcClock->setTime(tempTime, clockTime->min, clockTime->sec);
+				menuState = STANDBY;
+				optionState = OUTSIDE;
+				timeSetState = OUTSIDE_TIME;
+				tempTime = 0;
+			}
+			else if (timeSetState == SETMIN) {
+				rtcClock->setTime(clockTime->hour, tempTime, clockTime->sec);
+				menuState = STANDBY;
+				optionState = OUTSIDE;
+				timeSetState = OUTSIDE_TIME;
+				tempTime = 0;
+			}
+			else if (timeSetState == SETSEC) {
+				rtcClock->setTime(clockTime->hour, clockTime->min, tempTime);
+				menuState = STANDBY;
+				optionState = OUTSIDE;
+				timeSetState = OUTSIDE_TIME;
+				tempTime = 0;
+			}
 			break;
-		case(SETMIN):
-			rtcClock->setTime(clockTime->hour, tempTime, clockTime->sec);
-			menuState = STANDBY;
-			optionState = OUTSIDE;
-			timeSetState = OUTSIDE_TIME;
-			tempTime = 0;
-			break;
-		case(SETSEC):
-			rtcClock->setTime(clockTime->hour, clockTime->min, tempTime);
-			menuState = STANDBY;
-			optionState = OUTSIDE;
-			timeSetState = OUTSIDE_TIME;
-			tempTime = 0;
+		case(OPTION_FEEDTIME):
+			if (timeSetState == SETHOUR) {
+				timeSetState = SETMIN;
+				tempTime = 0;
+			}
+			else if (timeSetState == SETMIN) {
+				timeSetState = SETSEC;
+				tempTime = 0;
+			}
+			else if (timeSetState == SETSEC) {
+				menuState = STANDBY;
+				optionState = OUTSIDE;
+				timeSetState = OUTSIDE_TIME;
+				tempTime = 0;
+			}
 			break;
 		}
 	}
-	if (optionState == OUTSIDE && menuState != STANDBY) {
-		optionState = STATE1;
-	}
-	if (menuState == OPTION_TIME) {
-		switch (optionState) {
-		case STATE1:
-			timeSetState = SETHOUR;
+	else if (optionState != OUTSIDE) {
+		switch (menuState) {
+		case (OPTION_TIME):
+			if (optionState == STATE1) {
+				timeSetState = SETHOUR;
+			}
+			if (optionState == STATE2) {
+				timeSetState = SETMIN;
+			}
+			if (optionState == STATE3) {
+				timeSetState = SETSEC;
+			}
+			if (optionState == STATE4) {
+				optionState = OUTSIDE;
+			}
 			break;
-		case STATE2:
-			timeSetState = SETMIN;
-			break;
-		case STATE3:
-			timeSetState = SETSEC;
-			break;
-		case STATE4:
-			optionState = OUTSIDE;
+		case(OPTION_FEEDTIME):
+			if (optionState == STATE1) {
+				timeSetState = SETHOUR;
+			}
+			if (optionState == STATE2) {
+				timeSetState = SETHOUR;
+			}
+			if (optionState == STATE3) {
+				timeSetState = SETHOUR;
+			}
+			if (optionState == STATE4) {
+				timeSetState = SETHOUR;
+			}
 			break;
 		}
 	}
-	else if (menuState == OPTION_FEEDTIME) {
-
+	else {
+		switch (menuState){
+		case OPTION_TIME:
+			optionState = STATE1;
+			break;
+		case OPTION_FEEDTIME:
+			optionState = STATE1;
+			break;
+		case OPTION_FEEDVOLUME:
+			break;
+		case OPTION_EXIT:
+			menuState = STANDBY;
+			optionState = OUTSIDE;
+			timeSetState = OUTSIDE_TIME;
+			break;
+		case OPTION_DEBUG:
+			break;
+		}
 	}
-	else if (menuState == OPTION_EXIT) {
-		menuState = STANDBY;
-		optionState = OUTSIDE;
-		timeSetState = OUTSIDE_TIME;
 	}
-
-	
-}
 
 void Menu::passClock(DS3231* rtcClock) {
 	Menu::rtcClock = rtcClock;
@@ -402,29 +443,72 @@ void Menu::printOption_Time() {
 void Menu::printOption_Feedtime() {
 	int numFeedTimes= 4; // temp value delete
 
-	for (int i = 0; i < numFeedTimes; i++) {
-		lcd.setCursor(3, i);
-		lcd.print("F.Time :");
-		lcd.setCursor(9, i);
-		lcd.print(i + 1);
+	if (timeSetState == OUTSIDE_TIME) {
+		for (int i = 0; i < numFeedTimes; i++) {
+			lcd.setCursor(3, i);
+			lcd.print("F.Time :");
+			lcd.setCursor(9, i);
+			lcd.print(i + 1);
+		}
+		switch (optionState) {
+		case STATE1:
+			lcd.setCursor(0, 0);
+			lcd.print("->");
+			break;
+		case STATE2:
+			lcd.setCursor(0, 1);
+			lcd.print("->");
+			break;
+		case STATE3:
+			lcd.setCursor(0, 2);
+			lcd.print("->");
+			break;
+		case STATE4:
+			lcd.setCursor(0, 3);
+			lcd.print("->");
+			break;
+		}
 	}
-	switch (optionState) {
-	case STATE1:
-		lcd.setCursor(0, 0);
-		lcd.print("->");
-		break;
-	case STATE2:
-		lcd.setCursor(0, 1);
-		lcd.print("->");
-		break;
-	case STATE3:
-		lcd.setCursor(0, 2);
-		lcd.print("->");
-		break;
-	case STATE4:
-		lcd.setCursor(0, 3);
-		lcd.print("->");
-		break;
+	else {
+		lcd.setCursor(4, 0);
+		int maxTimeDigit;
+		switch (timeSetState) {
+		case SETHOUR:
+			lcd.print("ADJUST HOUR:");
+			maxTimeDigit = 25;
+			break;
+		case SETMIN:
+			lcd.print("ADJUST MIN:");
+			maxTimeDigit = 60;
+			break;
+		case SETSEC:
+			lcd.print("ADJUST SEC:");
+			maxTimeDigit = 60;
+			break;
+		}
+		for (int i = 0; i < 4; i++) {
+			lcd.setCursor(9 + (i * 3), 1);
+			if ((i + tempTime) >= maxTimeDigit) {
+				lcd.print(i + tempTime - maxTimeDigit);
+			}
+			else {
+				lcd.print(i + tempTime);
+			}
+		}
+		for (int i = 0; i > -4; i--) {
+			lcd.setCursor(9 + (i * 3), 1);
+			if ((i + tempTime) < 0) {
+				lcd.print(maxTimeDigit + i + tempTime);
+			}
+			else {
+				lcd.print(i + tempTime);
+			}
+		}
+
+		lcd.setCursor(9, 2);
+		lcd.LiquidCrystal::write((uint8_t)2);
+		lcd.setCursor(9, 3);
+		lcd.print("|");
 	}
 }
 

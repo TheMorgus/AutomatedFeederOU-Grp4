@@ -9,6 +9,12 @@ enum OptionState { OUTSIDE, STATE1, STATE2, STATE3, STATE4};
 enum TimeSetState { OUTSIDE_TIME, SETHOUR, SETMIN, SETSEC };
 enum UserInput { NONE, LEFT, RIGHT, BUTTON };
 
+struct feedTimeArrays {
+	Time time;
+	int volume;
+	bool exist;
+};
+
 class Menu {
 private:
 	void resetScreen();
