@@ -13,7 +13,45 @@
 #include "menu.h"
 #include "AS5040.h"
 #include "FeederControl.h"
+//Code made to detect serial encoder turns
+/*
+int totalDegrees = 0;
+float lastTurns = 0;
+int lastSerialData = 0;
 
+// the setup function runs once when you press reset or power the board
+void setup() {
+Serial.begin(9600);
+}
+
+// the loop function runs over and over again until power down or reset
+void loop() {
+float turns = 0;
+int referenceVal = 0;
+if (Serial.available()) {
+int serialData;
+serialData = Serial.parseInt();
+if (lastSerialData > 300 && serialData < 100) {
+totalDegrees += 360 - lastSerialData + serialData;
+lastSerialData = serialData;
+}
+else if (serialData > lastSerialData){
+totalDegrees += serialData - lastSerialData;
+lastSerialData = serialData;
+}
+}
+
+turns = (float)totalDegrees / (float)360;
+if (lastTurns != turns) {
+Serial.print("Total Turns : ");
+Serial.println(turns);
+Serial.print("Total Degrees : ");
+Serial.println(totalDegrees);
+}
+lastTurns = turns;
+
+}
+*/
 //MOTOR ENCODER PINS
 const uint8_t ENCODERDATAPIN = A0;
 const int ENCODERCLOCKPIN = 9;
