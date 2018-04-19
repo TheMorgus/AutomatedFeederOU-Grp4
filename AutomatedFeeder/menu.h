@@ -2,6 +2,7 @@
 #include "LiquidCrystal.h"
 #include "Arduino.h"
 #include "DS3231.h"
+#include "EEPROM.h"
 
 
 enum MenuState { STANDBY, OPTION_TIME, OPTION_FEEDTIME, OPTION_FEEDVOLUME, OPTION_EXIT, OPTION_DEBUG };
@@ -34,6 +35,8 @@ private:
 	void printOption_FeedVolume();
 	void printOption_PrintDebug();
 	void buttonPush();
+	void findNextFeed();
+	void saveData();
 
 	MenuState menuState = STANDBY;
 	OptionState optionState = OUTSIDE;
@@ -81,7 +84,7 @@ private:
 	int load;
 	int hours;
 	int tempValue = 0;
-	Time feedTime;
+	int nextFeedPos;
 	FeedData feedData[4];
 	FeederSignalPacket feederSignalPacket;
 	DS3231* rtcClock;
@@ -92,6 +95,7 @@ public:
 	void setLoad(int load);
 	void setFeed(int hr, int min, int sec);
 	void flagReset();
+	void loadData();
 	void menuChoiceIncrement();
 	void menuChoiceDecrement();
 	void passClock(DS3231* rtcClock);

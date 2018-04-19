@@ -22,7 +22,7 @@ void FeederController::dispenseByVolume(double volume) {
 	//menu->testPrint(value);
 	value = myAS5040->encoder_degrees();
 	//menu->testPrint2(value);
-	menu->dispenseMessage(value);
+	menu->dispenseMessage(value, -1);
 	delay(5000);
 }
 

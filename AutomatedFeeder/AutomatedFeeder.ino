@@ -59,11 +59,7 @@ void checkUserInput() {
 
 void setup() {
 	clock.begin();
-	//For testing clock, delete when functionality added through menu
-	//clock.setTime(2, 13, 15);
-	//clock.setDate(1, 2, 1920);
 	menu.setLoad(5);
-	menu.setFeed(10, 25, 0);
 	menu.passClock(&clock);
 
 	pinMode( ROTARY_PIN_SW , INPUT);
@@ -73,24 +69,9 @@ void setup() {
 
 	feederSignalPacket = menu.recieveSignalPointer();
 
-	//FOR TESTING DELETE LATER WHEN SAVE FUNCTIONS ARE RUNNING
-	menu.setFeedExist(0, true);
-	menu.setFeedExist(1, true);
-	menu.setFeedExist(2, true);
-	menu.setFeedExist(3, true);
-	menu.setFeedTime(0, 5, 30,0);
-	menu.setFeedTime(1, 15, 15, 0);
-	menu.setFeedTime(2, 3, 30, 0);
-	menu.setFeedTime(3, 6, 5, 6);
-	menu.setFeedVolume(0, 2.5);
-	menu.setFeedVolume(1, 1.5);
-	menu.setFeedVolume(2, 2.0);
-	menu.setFeedVolume(3, 1.0);
-	menu.bubbleSortFeedData();
-	//FOR TESTING DELETE LATER
-
-	//test delete
-	//Serial.begin(9600);
+	//must get time before loading data
+	time = clock.getTime();
+	menu.loadData();
 }
 
 
@@ -110,7 +91,7 @@ void loop() {
 		//Do not allow interrupts to program while food is being dispensed
 		detachInterrupt(0);
 		detachInterrupt(1);
-		if (feederSignalPacket->feederSignal = RUN_BYTIME) {
+		if (feederSignalPacket->feederSignal == RUN_BYTIME) {
 			feeder.dispenseByTime(feederSignalPacket->Val);
 		}
 		else {

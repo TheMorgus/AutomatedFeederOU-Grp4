@@ -1,6 +1,7 @@
 #include "menu.h"
 #include "LiquidCrystal.h"
 #include "DS3231.h"
+#include "EEPROM.h"
 
 //Constructor
 //Initializes LCD, creates special characters, gives menu the global clock pointer
@@ -33,6 +34,53 @@ void Menu::returnToStandby() {
 	flagReset();
 }
 
+void Menu::findNextFeed() {
+	//nextFeedPos of -2 indicates that there are no existant feed times.
+	//nextFeedPos of -1 indicates there are no more feed times today
+	for (int i = 0; i < 4; i++) {
+		if (feedData[0].exist == false) {
+			nextFeedPos = -2;
+			break;
+		}
+		if (feedData[3 - i].exist == false) {
+			continue;
+		}
+		else {
+			if (clockTime > feedData[3 - i].time) {
+				//if the current time is greater than all the available feed times
+				//there are no more feedings today
+				if (3 - i == 0) {
+					nextFeedPos = -1;
+				}
+				continue;
+			}
+			else {
+				nextFeedPos = 3 - i;
+				break;
+			}
+		}
+	}
+}
+
+//time = 8bytes; vol = 4 bytes; exist = 1 byte;
+void Menu::saveData() {
+	int address = 0;
+	for (int i = 0; i < 4; i++) {
+		EEPROM.put(address, feedData[i]);
+		address += 13;
+	}
+	EEPROM.put(address, feedData[1]);
+}
+void Menu::loadData() {
+	int address = 0;
+	for (int i = 0; i < 4; i++) {
+		//feedData[i].time = EEPROM.read(address);
+		EEPROM.get(address, feedData[i]);
+		address += 13;
+	}
+	this->bubbleSortFeedData();
+}
+
 void Menu::bubbleSortFeedData() {
 	FeedData tempFeedData;
 	//sort from highest time to the lowest time
@@ -55,6 +103,7 @@ void Menu::bubbleSortFeedData() {
 			}
 		}
 	}
+	this->findNextFeed();
 }
 
 //Sets the load variable of the class
@@ -69,11 +118,6 @@ void Menu::setLoad(int load) {
 }
 
 //sets variable corresponding to time till next feed
-void Menu::setFeed(int hr, int min, int sec) {
-	Menu::feedTime.hour = hr;
-	Menu::feedTime.min = min;
-	Menu::feedTime.sec = sec;
-}
 
 void Menu::menuChoiceIncrement() {
 	if (timeSetState != OUTSIDE_TIME) {
@@ -342,7 +386,7 @@ void Menu::buttonPush() {
 			}
 			//Set the time data at the array position and then set the menu state
 			//to the next time state to set (Hr->Min->Sec)
-			//After seconds, sort the times, exit time adjustment and return to standby menu state
+			//After seconds, sort the times, find the next feed time, and exit time adjustment and return to standby menu state
 			if (timeSetState == SETHOUR) {
 				this->setFeedExist(feedDataPosition, true);
 				feedData[feedDataPosition].time.hour = tempValue;
@@ -357,6 +401,7 @@ void Menu::buttonPush() {
 			else if (timeSetState == SETSEC) {
 				feedData[feedDataPosition].time.sec = tempValue;
 				this->bubbleSortFeedData();
+				this->saveData();
 				this->returnToStandby();
 			}
 			break;
@@ -383,6 +428,7 @@ void Menu::buttonPush() {
 		}
 		else {
 			feedData[feedDataPos].volume += tempValue / (double)100;
+			this->saveData();
 			this->returnToStandby();
 		}
 	}
@@ -428,6 +474,7 @@ void Menu::buttonPush() {
 				this->setFeedVolume(0, 0);
 				this->setFeedExist(0, false);
 				this->bubbleSortFeedData();
+				this->saveData();
 				optionState = STATE1;
 			}
 			else if (optionState == STATE3) {
@@ -437,6 +484,7 @@ void Menu::buttonPush() {
 				this->setFeedTime(1, 0, 0, 0);
 				this->setFeedVolume(1, 0);
 				this->setFeedExist(1, false);
+				this->saveData();
 				this->bubbleSortFeedData();
 				optionState = STATE1;
 			}
@@ -447,6 +495,7 @@ void Menu::buttonPush() {
 				this->setFeedTime(2, 0, 0, 0);
 				this->setFeedVolume(2, 0);
 				this->setFeedExist(2, false);
+				this->saveData();
 				this->bubbleSortFeedData();
 				optionState = STATE1;
 			}
@@ -457,6 +506,7 @@ void Menu::buttonPush() {
 				this->setFeedTime(3, 0, 0, 0);
 				this->setFeedVolume(3, 0);
 				this->setFeedExist(3, false);
+				this->saveData();
 				this->bubbleSortFeedData();
 				optionState = STATE1;
 			}
@@ -635,40 +685,47 @@ void Menu::printStandby() {
 		lcd.setCursor(19, 0);
 		lcd.print(clockTime->sec);
 	}
-	//print feed line
+	//print next feed line
 	lcd.setCursor(0, 1);
 	lcd.print("NEXT FEED@: ");
-	lcd.setCursor(12, 1);
-	if (feedTime.hour >= 10) {
-		lcd.print(feedTime.hour);
-	}
-	else {
-		lcd.setCursor(13, 1);
-		lcd.print(feedTime.hour);
-	}
-	lcd.setCursor(14, 1);
-	lcd.print(":");
+	switch (nextFeedPos) {
+	case -1:
+		lcd.setCursor(12, 1);
+		lcd.print("TOMORR.");
+		break;
+	case -2:
+		lcd.setCursor(12, 1);
+		lcd.print("NONE SET");
+		break;
+	default:
+		if (feedData[nextFeedPos].time.hour >= 10) {
+			lcd.setCursor(12, 1);
+		}
+		else {
+			lcd.setCursor(13, 1);
+		}
+		lcd.print(feedData[nextFeedPos].time.hour);
+		lcd.setCursor(14, 1);
+		lcd.print(":");
+		lcd.setCursor(15, 1);
+		if (feedData[nextFeedPos].time.min < 10) {
+			lcd.print("0");
+			lcd.setCursor(16, 1);
+		}
+		lcd.print(feedData[nextFeedPos].time.min);
 
-	lcd.setCursor(15, 1);
-	if (feedTime.min >= 10) {
-		lcd.print(feedTime.min);
-	}
-	else {
-		lcd.print(0);
-		lcd.setCursor(16, 1);
-		lcd.print(feedTime.min);
-	}
-	lcd.setCursor(17, 1);
-	lcd.print(":");
+		lcd.setCursor(17, 1);
+		lcd.print(":");
 
-	lcd.setCursor(18, 1);
-	if (feedTime.sec >= 10) {
-		lcd.print(feedTime.sec);
-	}
-	else {
-		lcd.print(0);
-		lcd.setCursor(19, 1);
-		lcd.print(feedTime.sec);
+		lcd.setCursor(18, 1);
+		if (feedData[nextFeedPos].time.sec >= 10) {
+			lcd.print(feedData[nextFeedPos].time.sec);
+		}
+		else {
+			lcd.print(0);
+			lcd.setCursor(19, 1);
+			lcd.print(feedData[nextFeedPos].time.sec);
+		}
 	}
 
 	//Print Load Line
@@ -1150,6 +1207,13 @@ void Menu::dispenseMessage(long encoderDegree, int timeRemaining) {
 }
 
 void Menu::update(UserInput userInput) {
+	if (nextFeedPos >= 0 && menuState != OPTION_FEEDTIME) {
+		if (clockTime > feedData[nextFeedPos].time) {
+			feederSignalPacket.feederSignal = RUN_BYVOLUME;
+			feederSignalPacket.Val = feedData[nextFeedPos].volume;
+			findNextFeed();
+		}
+	}
 	//If the user has not used the menu for 10 seconds, return to standby state
 	if (userInput == NONE && menuState != STANDBY && clockTime > (lastInputTime + 10)) {
 		this->returnToStandby();
@@ -1200,10 +1264,9 @@ void Menu::update(UserInput userInput) {
 		case OPTION_DEBUG:
 			this->printOption_PrintDebug();
 			break;
-}	
+		}	
 	}
 }
-
 
 bool operator>(const Time& time1, const Time& time2) {
 	if (time1.hour > time2.hour) {
@@ -1269,7 +1332,6 @@ Time operator+(const Time& time1, const int rightsum) {
 	}
 	return returntime;
 }
-
 void operator<<(Time& time1, const Time* time2) {
 	time1.sec = time2->sec;
 	time1.min = time2->min;
