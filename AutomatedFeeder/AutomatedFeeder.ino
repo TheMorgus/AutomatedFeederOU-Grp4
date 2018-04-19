@@ -31,7 +31,6 @@ const int ROTARY_PIN_SW = 0;
 const int ROTARY_PIN_CLK = 2;
 const int ROTARY_PIN_DT = 3;
 
-int rotaryposition = 0;
 Time time;
 FeederSignalPacket* feederSignalPacket;
 
@@ -45,7 +44,8 @@ Menu menu(LCDRS_PIN, LCDEN_PIN, LCDD4_PIN, LCDD5_PIN, LCDD6_PIN, LCDD7_PIN, &tim
 FeederController feeder(&menu, &myAS5040);
 DS3231 clock(DS3231_PIN_SDL, DS3231_PIN_SCL);
 
-//Interupt on rotary encoder movement.
+//Sends directional information from the rotary encoder
+//to he menu for processing
 void checkUserInput() {
 	char result = rotary.process();
 	menu.flagReset();
@@ -64,9 +64,12 @@ void setup() {
 
 	pinMode( ROTARY_PIN_SW , INPUT);
 
+	//interrupts for rotary encoder, rotary encoder must be on
+	//pins 2 and 3
 	attachInterrupt(0, checkUserInput, CHANGE);
 	attachInterrupt(1, checkUserInput, CHANGE);
 
+	//pointer used for recieving signals in the main loop
 	feederSignalPacket = menu.recieveSignalPointer();
 
 	//must get time before loading data
@@ -77,9 +80,8 @@ void setup() {
 
 void loop() {
 	time = clock.getTime();
+	//Get button change information and send to menu
 	currentButton = debounce(ROTARY_PIN_SW);
-	//testdelete
-	//Serial.print(digitalRead(ROTARY_PIN_SW));
 	if (lastButton == HIGH && currentButton == LOW) {
 		menu.update(BUTTON);
 	}
@@ -87,6 +89,8 @@ void loop() {
 		menu.update();
 	}
 	lastButton = currentButton;
+	//This code block checks if the menu is flagging a food dispensement event
+	//and runs the motor for the appropriate time in that case
 	if (feederSignalPacket->feederSignal != NONE) {
 		//Do not allow interrupts to program while food is being dispensed
 		detachInterrupt(0);
@@ -98,18 +102,10 @@ void loop() {
 			feeder.dispenseByVolume(feederSignalPacket->Val);
 		}
 		menu.flagReset();
+		//clears out menu signal after food is dispensed
 		menu.signalRecieved();
 		attachInterrupt(0, checkUserInput, CHANGE);
 		attachInterrupt(1, checkUserInput, CHANGE);
 	}
 	delay(100);
-	//Feeder.dispenseFood();
-	//Testing Shit DELETE LATER
-	//int hour = time.hour;
-	//int min = time.min;
-	//int sec = time.sec;
-	//menu.print(0, 2, hour);
-	//menu.print(3, 2, min);
-	//menu.print(6, 2, sec);
-	//END OF TEST; DELETE LATER
 }

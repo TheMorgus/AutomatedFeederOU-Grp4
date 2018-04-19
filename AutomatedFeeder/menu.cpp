@@ -3,8 +3,6 @@
 #include "DS3231.h"
 #include "EEPROM.h"
 
-//Constructor
-//Initializes LCD, creates special characters, gives menu the global clock pointer
 Menu::Menu(int EN, int RS, int D4, int D5, int D6, int D7, Time* clockTime): lcd(EN, RS, D4, D5, D6, D7) {
 	lcd.begin(20, 4);
 	lcd.createChar(0, (uint8_t*)load_full);
@@ -16,14 +14,12 @@ Menu::Menu(int EN, int RS, int D4, int D5, int D6, int D7, Time* clockTime): lcd
 	feederSignalPacket.Val = 0;
 }
 
-
 void Menu::resetScreen() {
 	lcd.begin(20, 4);
 	lcd.createChar(0, (uint8_t*)load_full);
 	lcd.createChar(1, (uint8_t*)load_empty);
 	lcd.createChar(2, (uint8_t*)arrow_up);
 }
-
 void Menu::returnToStandby() {
 	menuState = STANDBY;
 	optionState = OUTSIDE;
@@ -31,9 +27,10 @@ void Menu::returnToStandby() {
 	volumeSetState = OUTSIDE_VOLUME;
 	debugSetState = OUTSIDE_DEBUG;
 	tempValue = 0;
+	//menu is flagged for reset on any returns to standby to ensure that the lcd screen
+	//is running accurately
 	flagReset();
 }
-
 void Menu::findNextFeed() {
 	//nextFeedPos of -2 indicates that there are no existant feed times.
 	//nextFeedPos of -1 indicates there are no more feed times today
@@ -61,8 +58,6 @@ void Menu::findNextFeed() {
 		}
 	}
 }
-
-//time = 8bytes; vol = 4 bytes; exist = 1 byte;
 void Menu::saveData() {
 	int address = 0;
 	for (int i = 0; i < 4; i++) {
@@ -74,13 +69,14 @@ void Menu::saveData() {
 void Menu::loadData() {
 	int address = 0;
 	for (int i = 0; i < 4; i++) {
-		//feedData[i].time = EEPROM.read(address);
 		EEPROM.get(address, feedData[i]);
 		address += 13;
 	}
+	//bubble sort feed data on load not only to ensure its in a legitimate position,
+	//but because the bubble sort function signals to the menu to determine the next legitimate feed time
+	//to dispense food with the include findNextFeed() functions
 	this->bubbleSortFeedData();
 }
-
 void Menu::bubbleSortFeedData() {
 	FeedData tempFeedData;
 	//sort from highest time to the lowest time
@@ -103,10 +99,9 @@ void Menu::bubbleSortFeedData() {
 			}
 		}
 	}
+	//A bubble sort is necessary for the findNextFeed function to work properly
 	this->findNextFeed();
 }
-
-//Sets the load variable of the class
 void Menu::setLoad(int load) {
 	if (load > 15) {
 		load = 15;
@@ -116,10 +111,8 @@ void Menu::setLoad(int load) {
 	}
 	Menu::load = load;
 }
-
-//sets variable corresponding to time till next feed
-
 void Menu::menuChoiceIncrement() {
+	//If user is setting the time in either the feedtime selection, or current time selection
 	if (timeSetState != OUTSIDE_TIME) {
 		tempValue++;
 		if (timeSetState == SETHOUR) {
@@ -146,6 +139,7 @@ void Menu::menuChoiceIncrement() {
 			}
 		}
 	}
+	//if the user is in a debug setting
 	else if (debugSetState != OUTSIDE_DEBUG) {
 		switch (debugSetState) {
 		case DEBUG_MOTORTIME:
@@ -159,6 +153,8 @@ void Menu::menuChoiceIncrement() {
 			break;
 		}
 	}
+	//if the user is in any of the individual option menus, but not any of the secondary
+	//deeper levels of those menus
 	else if (optionState != OUTSIDE ) {
 		if (menuState == OPTION_TIME && optionState != STATE4) {
 			optionState = static_cast<OptionState>(optionState + 1);
@@ -238,27 +234,32 @@ void Menu::menuChoiceIncrement() {
 			optionState = static_cast<OptionState>(optionState + 1);
 		}
 	}
+	//If the user is on the option select screen
 	else if (optionState == OUTSIDE && menuState != OPTION_DEBUG) {
 		menuState = static_cast<MenuState>(menuState + 1);
 	}
 }
-
 void Menu::menuChoiceDecrement() {
+	//if user is on the feed-time or current time selection menu
 	if (timeSetState != OUTSIDE_TIME) {
 		tempValue--;
 		if (tempValue < 0) {
 			if (timeSetState == SETHOUR) {
+				//max hour value is 24
 				tempValue = 24;
 			}
 			else {
+				//max min/sec value = 60
 				tempValue = 59;
 			}
 		}
 	}
+	//if user is on the feed-volume selection menu
 	else if (volumeSetState != OUTSIDE_VOLUME) {
 		tempValue--;
 		if (tempValue < 0) {
 			if (volumeSetState == SETWHOLEDIGIT) {
+				//max of 10 cups allowed to be dispensed
 				tempValue = 10;
 			}
 			else {
@@ -266,6 +267,7 @@ void Menu::menuChoiceDecrement() {
 			}
 		}
 	}
+	//if in the second level of the debug portion of the menu
 	else if (debugSetState != OUTSIDE_DEBUG) {
 		switch (debugSetState) {
 		case DEBUG_MOTORTIME:
@@ -282,6 +284,7 @@ void Menu::menuChoiceDecrement() {
 			break;
 		}
 	}
+	//If user in this first level of any of the available options
 	else if (optionState != OUTSIDE && optionState != STATE1) {
 		if (menuState == OPTION_FEEDTIME) {
 			switch (optionState) {
@@ -344,11 +347,11 @@ void Menu::menuChoiceDecrement() {
 			optionState = static_cast<OptionState>(optionState - 1);
 		}
 	}
+	//if user is in the option select screen
 	else if (optionState == OUTSIDE && menuState != OPTION_TIME) {
 			menuState = static_cast<MenuState>(menuState - 1);
 	}
 }
-
 void Menu::buttonPush() {
 
 	//if inside the time set portion of the menu
@@ -473,6 +476,7 @@ void Menu::buttonPush() {
 				this->setFeedTime(0, 0, 0, 0);
 				this->setFeedVolume(0, 0);
 				this->setFeedExist(0, false);
+				//Always bubblesort after changing feed data!!
 				this->bubbleSortFeedData();
 				this->saveData();
 				optionState = STATE1;
@@ -541,7 +545,7 @@ void Menu::buttonPush() {
 			break;
 		}
 	}
-	//if the menu is displaying the vailable options
+	//if the menu is displaying the available options
 	else {
 		switch (menuState){
 		case OPTION_TIME:
@@ -569,7 +573,6 @@ void Menu::buttonPush() {
 		}
 	}
 	}
-
 void Menu::setFeedTime(int feedPosition, int hour, int min, int sec) {
 	feedData[feedPosition].time.hour = hour;
 	feedData[feedPosition].time.min = min;
@@ -581,12 +584,12 @@ void Menu::setFeedVolume(int feedPosition, double volume) {
 void Menu::setFeedExist(int feedPosition, bool existState) {
 	feedData[feedPosition].exist = existState;
 }
-
 void Menu::passClock(DS3231* rtcClock) {
+	//this pointer is necessary so that when the user sets the feed time through the menu
+	//this menu class is able to adjust the DS3231 clock
 	Menu::rtcClock = rtcClock;
 }
-
-//These functions were made only for testing the motor encoder. !!DELETE WHEN NO LONGER NECESSARY!!
+//These functions were made only for testing the motor encoder. !!Can be deleted when no longer necessary!!
 void Menu::testPrint(long test) {
 	lcd.setCursor(0, 2);
 	lcd.print(test);
@@ -603,9 +606,7 @@ void Menu::print(int column, int row, int test) {
 	lcd.setCursor(column, row);
 	lcd.print(test);
 }
-
-//END OF TEST FUNCTIONS; DELETE LATER
-
+//END OF TEST FUNCTIONS; DELETE LATER IF DESIRED
 void Menu::printOptions() {
 	//draw menu
 	lcd.setCursor(2, 0);
@@ -648,9 +649,8 @@ void Menu::printOptions() {
 		break;
 	}
 };
-
 void Menu::printStandby() {
-	//Print time line
+	//Print line with the current time on it
 	lcd.setCursor(5, 0);
 	lcd.print("TIME : ");
 	lcd.setCursor(12, 0);
@@ -685,15 +685,17 @@ void Menu::printStandby() {
 		lcd.setCursor(19, 0);
 		lcd.print(clockTime->sec);
 	}
-	//print next feed line
+	//print line that shows the user the next scheduled feed time
 	lcd.setCursor(0, 1);
 	lcd.print("NEXT FEED@: ");
 	switch (nextFeedPos) {
 	case -1:
+		//no more feed times today
 		lcd.setCursor(12, 1);
 		lcd.print("TOMORR.");
 		break;
 	case -2:
+		//user doesnt have any feed times set in memory!
 		lcd.setCursor(12, 1);
 		lcd.print("NONE SET");
 		break;
@@ -743,13 +745,13 @@ void Menu::printStandby() {
 		lcd.LiquidCrystal::write((uint8_t)1);
 	}
 }
-
 void Menu::printOption_Time() {
-
+	//if in outer portion of time option part of menu
 	if (timeSetState == OUTSIDE_TIME) {
 		lcd.setCursor(4, 0);
 		lcd.print("ADJUST TIME");
 		lcd.setCursor(2, 1);
+		//print the time
 		if (clockTime->hour >= 10) {
 			lcd.print(clockTime->hour);
 		}
@@ -781,6 +783,8 @@ void Menu::printOption_Time() {
 			lcd.setCursor(17, 1);
 			lcd.print(clockTime->sec);
 		}
+		//places the cursor based on where the user is currently selecting
+		//with the rotary encoder
 		switch (optionState) {
 		case STATE1:
 			lcd.setCursor(3, 2);
@@ -806,6 +810,8 @@ void Menu::printOption_Time() {
 			break;
 		}
 	}
+	//the user is in the second level part of the time option menu
+	//where the user sets the individual values for the times hour/min/sec
 	else {
 		lcd.setCursor(4, 0);
 		int maxTimeDigit;
@@ -848,17 +854,19 @@ void Menu::printOption_Time() {
 		lcd.print("|");
 	}
 }
-
 void Menu::printOption_Feedtime() {
-	int numFeedTimes= 4; // temp value delete
-
+	int numFeedTimes= 4; 
+	//In the outer portion othe feedtime menu
 	if (timeSetState == OUTSIDE_TIME) {
+		//user is indicating they wish to exit this part of the menu
 		if (optionState == STATE9) {
 			lcd.setCursor(8, 1);
 			lcd.print("Exit");
 		}
 		else {
 			for (int i = 0; i < numFeedTimes; i++) {
+				//while printing lines if it finds an array value where the feedtime doesnt exist,
+				//stop printing, because bubble sort ensures all feedtimes after it also do not exist
 				if (feedData[i].exist == false) {
 					break;
 				}
@@ -893,6 +901,9 @@ void Menu::printOption_Feedtime() {
 				lcd.print(feedData[i].time.sec);
 
 			}
+			//places cursor based on state that is set with rotary encoder
+			//"set" indicates the user can set the time on a button click
+			//"rem" indicates to the user that they can rem that time on a button click
 			switch (optionState) {
 			case STATE1:
 				lcd.setCursor(0, 0);
@@ -929,6 +940,7 @@ void Menu::printOption_Feedtime() {
 			}
 		}
 	}
+	//User wishes to change the feedtime at that position
 	else {
 		lcd.setCursor(4, 0);
 		int maxTimeDigit;
@@ -971,8 +983,8 @@ void Menu::printOption_Feedtime() {
 		lcd.print("|");
 	}
 }
-
 void Menu::printOption_FeedVolume() {
+	//in the first layer of the volume set menu
 	if (volumeSetState == OUTSIDE_VOLUME) {
 		if (optionState == STATE5) {
 			lcd.setCursor(8, 1);
@@ -982,6 +994,8 @@ void Menu::printOption_FeedVolume() {
 			int numFeedTimes = 4;
 
 			for (int i = 0; i < numFeedTimes; i++) {
+				//bubble sort ensures that all feed times after a nonexistent feedtime in the array
+				//also do not exist, so stop printing lines if a nonexistent feedtime is found
 				if (feedData[i].exist == false) {
 					break;
 				}
@@ -1014,8 +1028,10 @@ void Menu::printOption_FeedVolume() {
 			}
 		}
 	}
+	//Inner menu of the feedvolume option
 	else {
 		int maxValue;
+		//User is setting the integer value of the cups for the feed volume
 		if (volumeSetState == SETWHOLEDIGIT) {
 			maxValue = 10;
 			lcd.setCursor(2, 0);
@@ -1044,6 +1060,8 @@ void Menu::printOption_FeedVolume() {
 			lcd.setCursor(9, 3);
 			lcd.print("|");
 		}
+		//after the user sets the integer value for the feed volume
+		//they can set the partial value to the hundreths place
 		else {
 			maxValue = 99;
 			lcd.setCursor(2, 0);
@@ -1074,9 +1092,10 @@ void Menu::printOption_FeedVolume() {
 		}
 	}
 }
-
 void Menu::printOption_PrintDebug() {
+	//user is in the first layer of the debug menu
 	if (debugSetState == OUTSIDE_DEBUG) {
+		//user places the rotary encoder on the portion of the debug menu indicating they wish to exit
 		if (optionState == STATE5) {
 			lcd.setCursor(8, 1);
 			lcd.print("Exit");
@@ -1111,7 +1130,9 @@ void Menu::printOption_PrintDebug() {
 			}
 		}
 	}
+	//inner debug menu display
 	else {
+		//print based on the debug selection the user chose
 		switch (debugSetState) {
 		case DEBUG_MOTORTIME:
 			lcd.setCursor(1, 0);
@@ -1168,20 +1189,16 @@ void Menu::printOption_PrintDebug() {
 		}
 	}
 }
-
 void Menu::flagReset() {
 	resetFlag = true;
 }
-
 FeederSignalPacket* Menu::recieveSignalPointer() {
 	return &feederSignalPacket;
 }
-
 void Menu::signalRecieved() {
 	feederSignalPacket.feederSignal = NOSIGNAL;
 	feederSignalPacket.Val = 0;
 }
-
 void Menu::dispenseMessage(long encoderDegree, int timeRemaining) {
 	this->resetScreen();
 	lcd.setCursor(1, 0);
@@ -1197,6 +1214,8 @@ void Menu::dispenseMessage(long encoderDegree, int timeRemaining) {
 	lcd.setCursor(15, 3);
 	lcd.print("turns");
 	if (timeRemaining != -1) {
+		//this only shows up if the user is running in the run-by-time option
+		//in the debug menu
 		lcd.setCursor(0, 1 );
 		lcd.print("Time Left: ");
 		lcd.setCursor(10, 1);
@@ -1205,8 +1224,11 @@ void Menu::dispenseMessage(long encoderDegree, int timeRemaining) {
 		lcd.print("secs");
 	}
 }
-
 void Menu::update(UserInput userInput) {
+	//If the clock time is greater then the next feed time, the menu signals back to the main program
+	//that it should dispense food
+	//if the nextfeedpos is < 0, there is either no feedtimes set by the user or the next feed time is during
+	//the subsequent day, so the motor shouldnt be run if the nextFeedPos is any of those values
 	if (nextFeedPos >= 0 && menuState != OPTION_FEEDTIME) {
 		if (clockTime > feedData[nextFeedPos].time) {
 			feederSignalPacket.feederSignal = RUN_BYVOLUME;
@@ -1218,10 +1240,11 @@ void Menu::update(UserInput userInput) {
 	if (userInput == NONE && menuState != STANDBY && clockTime > (lastInputTime + 10)) {
 		this->returnToStandby();
 	}
-	//Change menu based parameters based on user input
+	//if there is user input
 	else if (userInput != NONE) {
 		resetFlag = true;
 		lastInputTime << clockTime;
+		//Enters the option menu on user input while on the standby menu
 		if (menuState == STANDBY) {
 			menuState = OPTION_TIME;
 		}
@@ -1241,7 +1264,7 @@ void Menu::update(UserInput userInput) {
 		this->resetScreen();
 		resetFlag = false;
 	}
-	//Prints the standby menu state
+	//Prints the standby menu state if standby flag is raised
 	if (menuState == STANDBY) {
 		printStandby();
 	}
@@ -1267,7 +1290,6 @@ void Menu::update(UserInput userInput) {
 		}	
 	}
 }
-
 bool operator>(const Time& time1, const Time& time2) {
 	if (time1.hour > time2.hour) {
 		return true;
