@@ -3,7 +3,7 @@
 #include "DS3231.h"
 #include "EEPROM.h"
 
-Menu::Menu(int EN, int RS, int D4, int D5, int D6, int D7, Time* clockTime): lcd(EN, RS, D4, D5, D6, D7) {
+Menu::Menu(int EN, int RS, int D4, int D5, int D6, int D7, DateTime* clockTime): lcd(EN, RS, D4, D5, D6, D7) {
 	lcd.begin(20, 4);
 	lcd.createChar(0, (uint8_t*)load_full);
 	lcd.createChar(1, (uint8_t*)load_empty);
@@ -14,6 +14,9 @@ Menu::Menu(int EN, int RS, int D4, int D5, int D6, int D7, Time* clockTime): lcd
 	feederSignalPacket.Val = 0;
 }
 
+void Menu::clearScreen() {
+	lcd.clear();
+}
 void Menu::resetScreen() {
 	lcd.begin(20, 4);
 	lcd.createChar(0, (uint8_t*)load_full);
@@ -356,18 +359,28 @@ void Menu::buttonPush() {
 
 	//if inside the time set portion of the menu
 	if (timeSetState != OUTSIDE_TIME) {
+		DateTime tempTime;
 		switch (menuState) {
 		case(OPTION_TIME):
 			if (timeSetState == SETHOUR) {
-				rtcClock->setTime(tempValue, clockTime->min, clockTime->sec);
+				tempTime.Hour = tempValue;
+				tempTime.Minute = clockTime->Minute;
+				tempTime.Second = clockTime->Second;
+				rtcClock->write(tempTime);
 				this->returnToStandby();
 			}
 			else if (timeSetState == SETMIN) {
-				rtcClock->setTime(clockTime->hour, tempValue, clockTime->sec);
+				tempTime.Hour = clockTime->Hour;
+				tempTime.Minute = tempValue;
+				tempTime.Second = clockTime->Second;
+				rtcClock->write(tempTime);
 				this->returnToStandby();
 			}
 			else if (timeSetState == SETSEC) {
-				rtcClock->setTime(clockTime->hour, clockTime->min, tempValue);
+				tempTime.Hour = clockTime->Hour;
+				tempTime.Minute = clockTime->Minute;
+				tempTime.Second = tempValue;
+				rtcClock->write(tempTime);
 				this->returnToStandby();
 			}
 			break;
@@ -392,18 +405,19 @@ void Menu::buttonPush() {
 			//After seconds, sort the times, find the next feed time, and exit time adjustment and return to standby menu state
 			if (timeSetState == SETHOUR) {
 				this->setFeedExist(feedDataPosition, true);
-				feedData[feedDataPosition].time.hour = tempValue;
+				feedData[feedDataPosition].time.Hour = tempValue;
 				timeSetState = SETMIN;
 				tempValue = 0;
 			}
 			else if (timeSetState == SETMIN) {
-				feedData[feedDataPosition].time.min = tempValue;
+				feedData[feedDataPosition].time.Minute = tempValue;
 				timeSetState = SETSEC;
 				tempValue = 0;
 			}
 			else if (timeSetState == SETSEC) {
-				feedData[feedDataPosition].time.sec = tempValue;
+				feedData[feedDataPosition].time.Second = tempValue;
 				this->bubbleSortFeedData();
+				//feedtime changed, save data!
 				this->saveData();
 				this->returnToStandby();
 			}
@@ -431,6 +445,7 @@ void Menu::buttonPush() {
 		}
 		else {
 			feedData[feedDataPos].volume += tempValue / (double)100;
+			//volumed changed, save data!
 			this->saveData();
 			this->returnToStandby();
 		}
@@ -477,8 +492,8 @@ void Menu::buttonPush() {
 				this->setFeedVolume(0, 0);
 				this->setFeedExist(0, false);
 				//Always bubblesort after changing feed data!!
-				this->bubbleSortFeedData();
 				this->saveData();
+				this->bubbleSortFeedData();
 				optionState = STATE1;
 			}
 			else if (optionState == STATE3) {
@@ -574,9 +589,9 @@ void Menu::buttonPush() {
 	}
 	}
 void Menu::setFeedTime(int feedPosition, int hour, int min, int sec) {
-	feedData[feedPosition].time.hour = hour;
-	feedData[feedPosition].time.min = min;
-	feedData[feedPosition].time.sec = sec;
+	feedData[feedPosition].time.Hour = hour;
+	feedData[feedPosition].time.Minute = min;
+	feedData[feedPosition].time.Second = sec;
 }
 void Menu::setFeedVolume(int feedPosition, double volume) {
 	feedData[feedPosition].volume = volume;
@@ -584,12 +599,12 @@ void Menu::setFeedVolume(int feedPosition, double volume) {
 void Menu::setFeedExist(int feedPosition, bool existState) {
 	feedData[feedPosition].exist = existState;
 }
-void Menu::passClock(DS3231* rtcClock) {
+void Menu::passClock(DS3231_Simple* rtcClock) {
 	//this pointer is necessary so that when the user sets the feed time through the menu
 	//this menu class is able to adjust the DS3231 clock
 	Menu::rtcClock = rtcClock;
 }
-//These functions were made only for testing the motor encoder. !!Can be deleted when no longer necessary!!
+//These functions were made only for testing. !!Can be deleted when no longer necessary!!
 void Menu::testPrint(long test) {
 	lcd.setCursor(0, 2);
 	lcd.print(test);
@@ -654,36 +669,36 @@ void Menu::printStandby() {
 	lcd.setCursor(5, 0);
 	lcd.print("TIME : ");
 	lcd.setCursor(12, 0);
-	if (clockTime->hour >= 10) {
-		lcd.print(clockTime->hour);
+	if (clockTime->Hour >= 10) {
+		lcd.print(clockTime->Hour);
 	}
 	else {
 		lcd.setCursor(13, 0);
-		lcd.print(clockTime->hour);
+		lcd.print(clockTime->Hour);
 	}
 	lcd.setCursor(14, 0);
 	lcd.print(":");
 
 	lcd.setCursor(15, 0);
-	if (clockTime->min >= 10) {
-		lcd.print(clockTime->min);
+	if (clockTime->Minute >= 10) {
+		lcd.print(clockTime->Minute);
 	}
 	else {
 		lcd.print(0);
 		lcd.setCursor(16, 0);
-		lcd.print(clockTime->min);
+		lcd.print(clockTime->Minute);
 	}
 	lcd.setCursor(17, 0);
 	lcd.print(":");
 
 	lcd.setCursor(18, 0);
-	if (clockTime->sec >= 10) {
-		lcd.print(clockTime->sec);
+	if (clockTime->Second >= 10) {
+		lcd.print(clockTime->Second);
 	}
 	else {
 		lcd.print(0);
 		lcd.setCursor(19, 0);
-		lcd.print(clockTime->sec);
+		lcd.print(clockTime->Second);
 	}
 	//print line that shows the user the next scheduled feed time
 	lcd.setCursor(0, 1);
@@ -700,33 +715,33 @@ void Menu::printStandby() {
 		lcd.print("NONE SET");
 		break;
 	default:
-		if (feedData[nextFeedPos].time.hour >= 10) {
+		if (feedData[nextFeedPos].time.Hour >= 10) {
 			lcd.setCursor(12, 1);
 		}
 		else {
 			lcd.setCursor(13, 1);
 		}
-		lcd.print(feedData[nextFeedPos].time.hour);
+		lcd.print(feedData[nextFeedPos].time.Hour);
 		lcd.setCursor(14, 1);
 		lcd.print(":");
 		lcd.setCursor(15, 1);
-		if (feedData[nextFeedPos].time.min < 10) {
+		if (feedData[nextFeedPos].time.Minute < 10) {
 			lcd.print("0");
 			lcd.setCursor(16, 1);
 		}
-		lcd.print(feedData[nextFeedPos].time.min);
+		lcd.print(feedData[nextFeedPos].time.Minute);
 
 		lcd.setCursor(17, 1);
 		lcd.print(":");
 
 		lcd.setCursor(18, 1);
-		if (feedData[nextFeedPos].time.sec >= 10) {
-			lcd.print(feedData[nextFeedPos].time.sec);
+		if (feedData[nextFeedPos].time.Second >= 10) {
+			lcd.print(feedData[nextFeedPos].time.Second);
 		}
 		else {
 			lcd.print(0);
 			lcd.setCursor(19, 1);
-			lcd.print(feedData[nextFeedPos].time.sec);
+			lcd.print(feedData[nextFeedPos].time.Second);
 		}
 	}
 
@@ -752,36 +767,36 @@ void Menu::printOption_Time() {
 		lcd.print("ADJUST TIME");
 		lcd.setCursor(2, 1);
 		//print the time
-		if (clockTime->hour >= 10) {
-			lcd.print(clockTime->hour);
+		if (clockTime->Hour >= 10) {
+			lcd.print(clockTime->Hour);
 		}
 		else {
 			lcd.setCursor(3, 1);
-			lcd.print(clockTime->hour);
+			lcd.print(clockTime->Hour);
 		}
 		lcd.setCursor(6, 1);
 		lcd.print(":");
 
 		lcd.setCursor(9, 1);
-		if (clockTime->min >= 10) {
-			lcd.print(clockTime->min);
+		if (clockTime->Minute >= 10) {
+			lcd.print(clockTime->Minute);
 		}
 		else {
 			lcd.print(0);
 			lcd.setCursor(10, 1);
-			lcd.print(clockTime->min);
+			lcd.print(clockTime->Minute);
 		}
 		lcd.setCursor(13, 1);
 		lcd.print(":");
 
 		lcd.setCursor(16, 1);
-		if (clockTime->sec >= 10) {
-			lcd.print(clockTime->sec);
+		if (clockTime->Second >= 10) {
+			lcd.print(clockTime->Second);
 		}
 		else {
 			lcd.print(0);
 			lcd.setCursor(17, 1);
-			lcd.print(clockTime->sec);
+			lcd.print(clockTime->Second);
 		}
 		//places the cursor based on where the user is currently selecting
 		//with the rotary encoder
@@ -874,31 +889,31 @@ void Menu::printOption_Feedtime() {
 				lcd.print("T :");
 				lcd.setCursor(8, i);
 				lcd.print(i + 1);
-				if (feedData[i].time.hour >= 10) {
+				if (feedData[i].time.Hour >= 10) {
 					lcd.setCursor(11, i);
 				}
 				else {
 					lcd.setCursor(12, i);
 				}
-				lcd.print(feedData[i].time.hour);
+				lcd.print(feedData[i].time.Hour);
 				lcd.setCursor(13, i);
 				lcd.print(":");
-				if (feedData[i].time.min >= 10) {
+				if (feedData[i].time.Minute >= 10) {
 					lcd.setCursor(14, i);
 				}
 				else {
 					lcd.setCursor(15, i);
 				}
-				lcd.print(feedData[i].time.min);
+				lcd.print(feedData[i].time.Minute);
 				lcd.setCursor(16, i);
 				lcd.print(":");
-				if (feedData[i].time.sec >= 10) {
+				if (feedData[i].time.Second >= 10) {
 					lcd.setCursor(17, i);
 				}
 				else {
 					lcd.setCursor(18, i);
 				}
-				lcd.print(feedData[i].time.sec);
+				lcd.print(feedData[i].time.Second);
 
 			}
 			//places cursor based on state that is set with rotary encoder
@@ -1236,6 +1251,12 @@ void Menu::update(UserInput userInput) {
 			findNextFeed();
 		}
 	}
+	//find the next feed time if its the start of a new day
+	//(this is just a quick and easy brute force method to ensure that
+	//the next feed time is found on the new day)
+	if (clockTime->Hour == 0 && clockTime->Minute == 0) {
+		findNextFeed();
+	}
 	//If the user has not used the menu for 10 seconds, return to standby state
 	if (userInput == NONE && menuState != STANDBY && clockTime > (lastInputTime + 10)) {
 		this->returnToStandby();
@@ -1266,7 +1287,7 @@ void Menu::update(UserInput userInput) {
 	}
 	//Prints the standby menu state if standby flag is raised
 	if (menuState == STANDBY) {
-		printStandby();
+		this->printStandby();
 	}
 	//If not on standby, and outside a particular option, print the entire option menu
 	else if (optionState == OUTSIDE) {
@@ -1290,44 +1311,44 @@ void Menu::update(UserInput userInput) {
 		}	
 	}
 }
-bool operator>(const Time& time1, const Time& time2) {
-	if (time1.hour > time2.hour) {
+bool operator>(const DateTime& time1, const DateTime& time2) {
+	if (time1.Hour > time2.Hour) {
 		return true;
 	}
-	else if (time1.hour == time2.hour && time1.min > time2.min) {
+	else if (time1.Hour == time2.Hour && time1.Minute > time2.Minute) {
 		return true;
 	}
-	else if (time1.hour == time2.hour && time1.min == time2.min && time1.sec > time2.sec) {
-		return true;
-	}
-	else {
-		return false;
-	}
-}
-bool operator>(const Time* time1, const Time& time2) {
-	if (time1->hour > time2.hour) {
-		return true;
-	}
-	else if (time1->hour == time2.hour && time1->min > time2.min) {
-		return true;
-	}
-	else if (time1->hour == time2.hour && time1->min == time2.min && time1->sec > time2.sec) {
+	else if (time1.Hour == time2.Hour && time1.Minute == time2.Minute && time1.Second > time2.Second) {
 		return true;
 	}
 	else {
 		return false;
 	}
 }
-Time operator+(const Time& time1, const int rightsum) {
-	Time returntime;
-	returntime.sec = time1.sec + rightsum;
-	returntime.min = time1.min;
-	returntime.hour = time1.hour;
+bool operator>(const DateTime* time1, const DateTime& time2) {
+	if (time1->Hour > time2.Hour) {
+		return true;
+	}
+	else if (time1->Hour == time2.Hour && time1->Minute > time2.Minute) {
+		return true;
+	}
+	else if (time1->Hour == time2.Hour && time1->Minute == time2.Minute && time1->Second > time2.Second) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+DateTime operator+(const DateTime& time1, const int rightsum) {
+	DateTime returntime;
+	returntime.Second = time1.Second + rightsum;
+	returntime.Minute = time1.Minute;
+	returntime.Hour = time1.Hour;
 	bool pass = false;
 	while (pass == false) {
-		if (returntime.sec >= 60) {
-			returntime.min += 1;
-			returntime.sec -= 60;
+		if (returntime.Second >= 60) {
+			returntime.Minute += 1;
+			returntime.Second -= 60;
 		}
 		else {
 			pass = true;
@@ -1335,9 +1356,9 @@ Time operator+(const Time& time1, const int rightsum) {
 	}
 	pass = false;
 	while (pass == false) {
-		if (returntime.min >= 60) {
-			returntime.hour += 1;
-			returntime.min -= 60;
+		if (returntime.Minute >= 60) {
+			returntime.Hour += 1;
+			returntime.Minute -= 60;
 		}
 		else {
 			pass = true;
@@ -1345,8 +1366,8 @@ Time operator+(const Time& time1, const int rightsum) {
 	}
 	pass = false;
 	while (pass == false) {
-		if (returntime.hour >= 24) {
-			returntime.hour -= 24;
+		if (returntime.Hour >= 24) {
+			returntime.Hour -= 24;
 		}
 		else {
 			pass = true;
@@ -1354,8 +1375,8 @@ Time operator+(const Time& time1, const int rightsum) {
 	}
 	return returntime;
 }
-void operator<<(Time& time1, const Time* time2) {
-	time1.sec = time2->sec;
-	time1.min = time2->min;
-	time1.hour = time2->hour;
+void operator<<(DateTime& time1, const DateTime* time2) {
+	time1.Second = time2->Second;
+	time1.Minute = time2->Minute;
+	time1.Hour = time2->Hour;
 }

@@ -1,8 +1,9 @@
 #pragma once
 #include "LiquidCrystal.h"
 #include "Arduino.h"
-#include "DS3231.h"
+//#include "DS3231.h"
 #include "EEPROM.h"
+#include "DS3231_Simple.h"
 
 
 enum MenuState { STANDBY, OPTION_TIME, OPTION_FEEDTIME, OPTION_FEEDVOLUME, OPTION_EXIT, OPTION_DEBUG };
@@ -13,8 +14,9 @@ enum DebugSetState {OUTSIDE_DEBUG, DEBUG_MOTORTIME, DEBUG_MOTORVOLUME, DEBUG_ENC
 enum UserInput { NONE, LEFT, RIGHT, BUTTON };
 enum FeederSignal { NOSIGNAL, RUN_BYTIME, RUN_BYVOLUME };
 
+
 struct FeedData{
-	Time time;
+	DateTime time;
 	double volume;
 	bool exist;
 };
@@ -130,9 +132,9 @@ private:
 	//All the feedtime data is located in this struct
 	FeedData feedData[4];
 	FeederSignalPacket feederSignalPacket;
-	DS3231* rtcClock;
-	Time* clockTime;
-	Time lastInputTime;
+	DS3231_Simple* rtcClock;
+	DateTime* clockTime;
+	DateTime lastInputTime;
 
 public:
 	//For testing shouldn't be used during normal operations
@@ -143,12 +145,14 @@ public:
 	void print(int column, int row, int test);
 	//END OF TESTING
 
+
+	void clearScreen();
 	//Flags a screen reset for the next run of the menus update loop
 	void flagReset();
 	//Loads data from the EEPROM
 	//Should be run in the setup of the main function
 	void loadData();
-	void passClock(DS3231* rtcClock);
+	void passClock(DS3231_Simple* rtcClock);
 	FeederSignalPacket* recieveSignalPointer();
 	//Indicates to the menu that the signal indicating a motor run event was recieved
 	//In this case, the signal values are reset to the off state
@@ -162,16 +166,16 @@ public:
 	
 	//Constructor
 	//Initializes LCD, creates special characters, gives menu the global clock pointer
-	Menu(int RS, int EN, int D4, int D5, int D6, int D7, Time* clockTime);
+	Menu(int RS, int EN, int D4, int D5, int D6, int D7, DateTime* clockTime);
 };
 
 //Allows a comparison on wether the time contained in a time struct
 //is at a later period than another time struct
-bool operator>(const Time& time1, const Time& time2);
-bool operator>(const Time* time1, const Time& time2);
+bool operator>(const DateTime& time1, const DateTime& time2);
+bool operator>(const DateTime* time1, const DateTime& time2);
 //when an integer is added to a time struct, that integer is added as
 //if it a value in seconds
-Time operator+(const Time& time1, const int rightsum);
+DateTime operator+(const DateTime& time1, const int rightsum);
 //assigns the time struc on the right hand side of the stream operator
 //to the time struc on the left hand side
-void operator<<(Time& time1, const Time* time2);
+void operator<<(DateTime& time1, const DateTime* time2);

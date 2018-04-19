@@ -4,8 +4,10 @@
  Author:	Morg
 */
 
-#include <DS3231.h>
-#include <LiquidCrystal_I2C.h>
+#include <DS3231_Simple.h>
+//#include <DS3231.h>
+//old clock library without I2C function
+//#include <LiquidCrystal_I2C.h>
 #include <Rotary.h>
 #include "LiquidCrystal.h"
 #include "menu.h"
@@ -31,7 +33,8 @@ const int ROTARY_PIN_SW = 0;
 const int ROTARY_PIN_CLK = 2;
 const int ROTARY_PIN_DT = 3;
 
-Time time;
+
+DateTime time;
 FeederSignalPacket* feederSignalPacket;
 
 boolean lastButton = HIGH;
@@ -42,12 +45,13 @@ Rotary rotary(ROTARY_PIN_DT, ROTARY_PIN_CLK);
 AS5040 myAS5040(ENCODERDATAPIN, ENCODERCLOCKPIN, ENCODERCHIPSELECTPIN);
 Menu menu(LCDRS_PIN, LCDEN_PIN, LCDD4_PIN, LCDD5_PIN, LCDD6_PIN, LCDD7_PIN, &time);
 FeederController feeder(&menu, &myAS5040);
-DS3231 clock(DS3231_PIN_SDL, DS3231_PIN_SCL);
+DS3231_Simple clock;
 
 //Sends directional information from the rotary encoder
 //to he menu for processing
 void checkUserInput() {
 	char result = rotary.process();
+	menu.clearScreen();
 	menu.flagReset();
 	if (result == DIR_CW) {
 		menu.update(LEFT);
@@ -73,13 +77,13 @@ void setup() {
 	feederSignalPacket = menu.recieveSignalPointer();
 
 	//must get time before loading data
-	time = clock.getTime();
+	time = clock.read();
 	menu.loadData();
 }
 
 
 void loop() {
-	time = clock.getTime();
+	time = clock.read();
 	//Get button change information and send to menu
 	currentButton = debounce(ROTARY_PIN_SW);
 	if (lastButton == HIGH && currentButton == LOW) {
