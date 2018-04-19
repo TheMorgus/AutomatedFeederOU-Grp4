@@ -2,13 +2,28 @@
 #include "AS5040.h"
 #include "Arduino.h"
 
-void FeederController::dispenseFood() {
-
+void FeederController::dispenseByTime(int time) {
 	long value;
-	value = myAS5040->encoder_value();
-	menu->testPrint(value);
+	int timePassed = 0;
+	//value = myAS5040->encoder_value();
+	//menu->testPrint(value);
+	//menu->testPrint2(value);
+	while (timePassed < time) {
+		value = myAS5040->encoder_degrees();
+		menu->dispenseMessage(value, (double)time - (double)timePassed);
+		delay(600);
+		timePassed += 1;
+	}
+}
+
+void FeederController::dispenseByVolume(double volume) {
+	long value;
+	//value = myAS5040->encoder_value();
+	//menu->testPrint(value);
 	value = myAS5040->encoder_degrees();
-	menu->testPrint2(value);
+	//menu->testPrint2(value);
+	menu->dispenseMessage(value);
+	delay(5000);
 }
 
 

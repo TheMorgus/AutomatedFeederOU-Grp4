@@ -10,6 +10,9 @@ Menu::Menu(int EN, int RS, int D4, int D5, int D6, int D7, Time* clockTime): lcd
 	lcd.createChar(1, (uint8_t*)load_empty);
 	lcd.createChar(2, (uint8_t*)arrow_up);
 	this->clockTime = clockTime;
+
+	feederSignalPacket.feederSignal = NOSIGNAL;
+	feederSignalPacket.Val = 0;
 }
 
 
@@ -25,9 +28,10 @@ void Menu::returnToStandby() {
 	optionState = OUTSIDE;
 	timeSetState = OUTSIDE_TIME;
 	volumeSetState = OUTSIDE_VOLUME;
+	debugSetState = OUTSIDE_DEBUG;
 	tempValue = 0;
+	flagReset();
 }
-
 
 void Menu::bubbleSortFeedData() {
 	FeedData tempFeedData;
@@ -98,9 +102,25 @@ void Menu::menuChoiceIncrement() {
 			}
 		}
 	}
+	else if (debugSetState != OUTSIDE_DEBUG) {
+		switch (debugSetState) {
+		case DEBUG_MOTORTIME:
+			tempValue++;
+			if (tempValue > 20) {
+				tempValue = 0;
+			}
+			break;
+		case DEBUG_MOTORVOLUME:
+			tempValue ++;
+			break;
+		}
+	}
 	else if (optionState != OUTSIDE ) {
-		if (menuState == OPTION_FEEDTIME && optionState != STATE9) {
-			switch(optionState) {
+		if (menuState == OPTION_TIME && optionState != STATE4) {
+			optionState = static_cast<OptionState>(optionState + 1);
+		}
+		else if (menuState == OPTION_FEEDTIME && optionState != STATE9) {
+			switch (optionState) {
 			case STATE1:
 				if (feedData[0].exist) {
 					optionState = static_cast<OptionState>(optionState + 1);
@@ -138,9 +158,6 @@ void Menu::menuChoiceIncrement() {
 				break;
 			}
 		}
-		else if (menuState == OPTION_TIME && optionState != STATE4) {
-			optionState = static_cast<OptionState>(optionState + 1);
-		}
 		else if (menuState == OPTION_FEEDVOLUME && optionState != STATE5) {
 			switch(optionState) {
 			case STATE1:
@@ -173,6 +190,9 @@ void Menu::menuChoiceIncrement() {
 
 			}
 		}
+		else if (menuState == OPTION_DEBUG && optionState != STATE5) {
+			optionState = static_cast<OptionState>(optionState + 1);
+		}
 	}
 	else if (optionState == OUTSIDE && menuState != OPTION_DEBUG) {
 		menuState = static_cast<MenuState>(menuState + 1);
@@ -200,6 +220,22 @@ void Menu::menuChoiceDecrement() {
 			else {
 				tempValue = 99;
 			}
+		}
+	}
+	else if (debugSetState != OUTSIDE_DEBUG) {
+		switch (debugSetState) {
+		case DEBUG_MOTORTIME:
+			tempValue--;
+			if (tempValue < 0) {
+				tempValue = 20;
+			}
+			break;
+		case DEBUG_MOTORVOLUME:
+			tempValue --;
+			if (tempValue <= -10) {
+				tempValue = -10;
+			}
+			break;
 		}
 	}
 	else if (optionState != OUTSIDE && optionState != STATE1) {
@@ -259,6 +295,9 @@ void Menu::menuChoiceDecrement() {
 				optionState = static_cast<OptionState>(optionState - 1);
 				break;
 			}
+		}
+		else if (menuState == OPTION_DEBUG) {
+			optionState = static_cast<OptionState>(optionState - 1);
 		}
 	}
 	else if (optionState == OUTSIDE && menuState != OPTION_TIME) {
@@ -347,6 +386,22 @@ void Menu::buttonPush() {
 			this->returnToStandby();
 		}
 	}
+	else if (debugSetState != OUTSIDE_DEBUG) {
+		switch(debugSetState) {
+		case(DEBUG_MOTORTIME) :
+			feederSignalPacket.feederSignal = RUN_BYTIME;
+			feederSignalPacket.Val = (double)tempValue;
+			this->returnToStandby();
+			break;
+		case(DEBUG_MOTORVOLUME):
+			feederSignalPacket.feederSignal = RUN_BYVOLUME;
+			feederSignalPacket.Val = double(1) + (double)tempValue / 10;
+			this->returnToStandby();
+			break;
+		default:
+			this->returnToStandby();
+		}
+	}
 	//if inside a particular option on the menu
 	else if (optionState != OUTSIDE) {
 		switch (menuState) {
@@ -413,8 +468,25 @@ void Menu::buttonPush() {
 			if (optionState != STATE5) {
 				volumeSetState = SETWHOLEDIGIT;
 			}
-			else{
+			else {
 				this->returnToStandby();
+			}
+			break;
+		case OPTION_DEBUG:
+			if (optionState == STATE5){
+				this->returnToStandby();
+			}
+			else if (optionState == STATE1) {
+				debugSetState = DEBUG_MOTORTIME;
+			}
+			else if (optionState == STATE2) {
+				debugSetState = DEBUG_MOTORVOLUME;
+			}
+			else if (optionState == STATE3) {
+				debugSetState = DEBUG_ENCODERPOSITION;
+			}
+			else if (optionState == STATE4) {
+				debugSetState = DEBUG_IRSENSOR;
 			}
 			break;
 		}
@@ -442,6 +514,7 @@ void Menu::buttonPush() {
 			timeSetState = OUTSIDE_TIME;
 			break;
 		case OPTION_DEBUG:
+			optionState = STATE1;
 			break;
 		}
 	}
@@ -613,7 +686,6 @@ void Menu::printStandby() {
 		lcd.LiquidCrystal::write((uint8_t)1);
 	}
 }
-
 
 void Menu::printOption_Time() {
 
@@ -946,20 +1018,141 @@ void Menu::printOption_FeedVolume() {
 	}
 }
 
+void Menu::printOption_PrintDebug() {
+	if (debugSetState == OUTSIDE_DEBUG) {
+		if (optionState == STATE5) {
+			lcd.setCursor(8, 1);
+			lcd.print("Exit");
+		}
+		else {
+			lcd.setCursor(4, 0);
+			lcd.print("RunMotorByTime");
+			lcd.setCursor(4, 1);
+			lcd.print("RunMotorByVol");
+			lcd.setCursor(4, 2);
+			lcd.print("Encod. Position");
+			lcd.setCursor(4, 3);
+			lcd.print("IR. Value");
+
+			switch (optionState) {
+			case STATE1:
+				lcd.setCursor(0, 0);
+				lcd.print("->");
+				break;
+			case STATE2:
+				lcd.setCursor(0, 1);
+				lcd.print("->");
+				break;
+			case STATE3:
+				lcd.setCursor(0, 2);
+				lcd.print("->");
+				break;
+			case STATE4:
+				lcd.setCursor(0, 3);
+				lcd.print("->");
+				break;
+			}
+		}
+	}
+	else {
+		switch (debugSetState) {
+		case DEBUG_MOTORTIME:
+			lcd.setCursor(1, 0);
+			lcd.print("MOTOR RUNTIME (sec)");
+			for (int i = 0; i < 4; i++) {
+				lcd.setCursor(9 + (i * 3), 1);
+				if ((i + tempValue) > 20) {
+					lcd.print(i + tempValue - 21);
+				}
+				else {
+					lcd.print(i + tempValue);
+				}
+			}
+			for (int i = 0; i > -4; i--) {
+				lcd.setCursor(9 + (i * 3), 1);
+				if ((i + tempValue) < 0) {
+					lcd.print(21 + i + tempValue);
+				}
+				else {
+					lcd.print(i + tempValue);
+				}
+			}
+			lcd.setCursor(9, 2);
+			lcd.LiquidCrystal::write((uint8_t)2);
+			lcd.setCursor(9, 3);
+			lcd.print("|");
+			break;
+		case DEBUG_MOTORVOLUME:
+			lcd.setCursor(1, 0);
+			lcd.print("VOL. TO DISP.(cups)");
+			lcd.setCursor(7, 1);
+			lcd.print(double(1) + (double)tempValue / 10 + (double)0.10);
+			lcd.setCursor(4, 2);
+			lcd.print("->");
+			lcd.setCursor(7, 2);
+			lcd.print(double(double(1) + (double)tempValue / 10));
+			if(tempValue != -10) {
+				lcd.setCursor(7, 3);
+				lcd.print(double(1) + (double)tempValue / 10 - (double)0.10);
+			}
+			break;
+		case DEBUG_ENCODERPOSITION:
+			lcd.setCursor(3, 0);
+			lcd.print("ENCODER POSITION:");
+			break;
+		case DEBUG_IRSENSOR:
+			lcd.setCursor(2, 0);
+			lcd.print("-IR INFORMATION-");
+			lcd.setCursor(0, 1);
+			lcd.print("IR ANALOG VAL:");
+			lcd.setCursor(0, 2);
+			lcd.print("CALC. HEIGHT: ");
+			break;
+		}
+	}
+}
+
 void Menu::flagReset() {
 	resetFlag = true;
 }
 
+FeederSignalPacket* Menu::recieveSignalPointer() {
+	return &feederSignalPacket;
+}
+
+void Menu::signalRecieved() {
+	feederSignalPacket.feederSignal = NOSIGNAL;
+	feederSignalPacket.Val = 0;
+}
+
+void Menu::dispenseMessage(long encoderDegree, int timeRemaining) {
+	this->resetScreen();
+	lcd.setCursor(1, 0);
+	lcd.print("--DISPENSING FOOD--");
+	lcd.setCursor(0, 2);
+	lcd.print("Encod.Ang.:");
+	lcd.setCursor(17, 2);
+	lcd.print("deg");
+	lcd.setCursor(11, 2);
+	lcd.print(encoderDegree);
+	lcd.setCursor(0, 3);
+	lcd.print("Calc.Turns: ");
+	lcd.setCursor(15, 3);
+	lcd.print("turns");
+	if (timeRemaining != -1) {
+		lcd.setCursor(0, 1 );
+		lcd.print("Time Left: ");
+		lcd.setCursor(10, 1);
+		lcd.print(timeRemaining);
+		lcd.setCursor(13, 1);
+		lcd.print("secs");
+	}
+}
 
 void Menu::update(UserInput userInput) {
 	//If the user has not used the menu for 10 seconds, return to standby state
 	if (userInput == NONE && menuState != STANDBY && clockTime > (lastInputTime + 10)) {
-		menuState = STANDBY;
-		optionState = OUTSIDE;
-		timeSetState = OUTSIDE_TIME;
-		volumeSetState = OUTSIDE_VOLUME;
-		tempValue = 0;
-		resetFlag = true;
+		this->returnToStandby();
 	}
 	//Change menu based parameters based on user input
 	else if (userInput != NONE) {
@@ -1004,7 +1197,10 @@ void Menu::update(UserInput userInput) {
 		case OPTION_FEEDVOLUME:
 			this->printOption_FeedVolume();
 			break;
-}
+		case OPTION_DEBUG:
+			this->printOption_PrintDebug();
+			break;
+}	
 	}
 }
 

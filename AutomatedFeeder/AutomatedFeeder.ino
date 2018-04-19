@@ -33,6 +33,7 @@ const int ROTARY_PIN_DT = 3;
 
 int rotaryposition = 0;
 Time time;
+FeederSignalPacket* feederSignalPacket;
 
 boolean lastButton = HIGH;
 boolean currentButton = HIGH;
@@ -70,7 +71,9 @@ void setup() {
 	attachInterrupt(0, checkUserInput, CHANGE);
 	attachInterrupt(1, checkUserInput, CHANGE);
 
-	//FOR TESTING DELETE LATER
+	feederSignalPacket = menu.recieveSignalPointer();
+
+	//FOR TESTING DELETE LATER WHEN SAVE FUNCTIONS ARE RUNNING
 	menu.setFeedExist(0, true);
 	menu.setFeedExist(1, true);
 	menu.setFeedExist(2, true);
@@ -103,6 +106,21 @@ void loop() {
 		menu.update();
 	}
 	lastButton = currentButton;
+	if (feederSignalPacket->feederSignal != NONE) {
+		//Do not allow interrupts to program while food is being dispensed
+		detachInterrupt(0);
+		detachInterrupt(1);
+		if (feederSignalPacket->feederSignal = RUN_BYTIME) {
+			feeder.dispenseByTime(feederSignalPacket->Val);
+		}
+		else {
+			feeder.dispenseByVolume(feederSignalPacket->Val);
+		}
+		menu.flagReset();
+		menu.signalRecieved();
+		attachInterrupt(0, checkUserInput, CHANGE);
+		attachInterrupt(1, checkUserInput, CHANGE);
+	}
 	delay(100);
 	//Feeder.dispenseFood();
 	//Testing Shit DELETE LATER

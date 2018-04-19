@@ -8,12 +8,19 @@ enum MenuState { STANDBY, OPTION_TIME, OPTION_FEEDTIME, OPTION_FEEDVOLUME, OPTIO
 enum OptionState { OUTSIDE, STATE1, STATE2, STATE3, STATE4, STATE5, STATE6, STATE7, STATE8, STATE9};
 enum TimeSetState { OUTSIDE_TIME, SETHOUR, SETMIN, SETSEC };
 enum VolumeSetState { OUTSIDE_VOLUME, SETWHOLEDIGIT, SETPARTIALDIGIT};
+enum DebugSetState {OUTSIDE_DEBUG, DEBUG_MOTORTIME, DEBUG_MOTORVOLUME, DEBUG_ENCODERPOSITION, DEBUG_IRSENSOR};
 enum UserInput { NONE, LEFT, RIGHT, BUTTON };
+enum FeederSignal { NOSIGNAL, RUN_BYTIME, RUN_BYVOLUME };
 
 struct FeedData{
 	Time time;
 	double volume;
 	bool exist;
+};
+
+struct FeederSignalPacket {
+	FeederSignal feederSignal;
+	double Val;
 };
 
 class Menu {
@@ -25,12 +32,14 @@ private:
 	void printOption_Time();
 	void printOption_Feedtime();
 	void printOption_FeedVolume();
+	void printOption_PrintDebug();
 	void buttonPush();
 
 	MenuState menuState = STANDBY;
 	OptionState optionState = OUTSIDE;
 	TimeSetState timeSetState = OUTSIDE_TIME;
 	VolumeSetState volumeSetState = OUTSIDE_VOLUME;
+	DebugSetState debugSetState = OUTSIDE_DEBUG;
 
 	//Character for a full load bar
 	byte load_full[8] = {
@@ -74,7 +83,7 @@ private:
 	int tempValue = 0;
 	Time feedTime;
 	FeedData feedData[4];
-
+	FeederSignalPacket feederSignalPacket;
 	DS3231* rtcClock;
 	Time* clockTime;
 	Time lastInputTime;
@@ -86,6 +95,9 @@ public:
 	void menuChoiceIncrement();
 	void menuChoiceDecrement();
 	void passClock(DS3231* rtcClock);
+	FeederSignalPacket* recieveSignalPointer();
+	void signalRecieved();
+	void dispenseMessage(long encoderDegree, int timeRemaining = -1);
 
 	//MAKE PRIVATE LATER AFTER TESTING
 	void setFeedTime(int feedPosition, int hour, int min, int sec);

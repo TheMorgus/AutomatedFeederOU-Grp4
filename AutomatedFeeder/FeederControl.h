@@ -13,7 +13,8 @@ private:
 	int rotaryPosition;
 
 public:
-	void dispenseFood();
+	void dispenseByTime(int time);
+	void dispenseByVolume(double volume);
 	//void checkUserInput();
 
 	FeederController(Menu* menu, AS5040* encoder);
