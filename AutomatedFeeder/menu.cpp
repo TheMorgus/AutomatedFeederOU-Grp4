@@ -459,7 +459,7 @@ void Menu::buttonPush() {
 			break;
 		case(DEBUG_MOTORVOLUME):
 			feederSignalPacket.feederSignal = RUN_BYVOLUME;
-			feederSignalPacket.Val = double(1) + (double)tempValue / 10;
+			feederSignalPacket.Val = double(100) + (double)tempValue * 10;
 			this->returnToStandby();
 			break;
 		default:
@@ -1177,16 +1177,16 @@ void Menu::printOption_PrintDebug() {
 			break;
 		case DEBUG_MOTORVOLUME:
 			lcd.setCursor(1, 0);
-			lcd.print("VOL. TO DISP.(cups)");
+			lcd.print("DEGREES TO TURN:");
 			lcd.setCursor(7, 1);
-			lcd.print(double(1) + (double)tempValue / 10 + (double)0.10);
+			lcd.print((int)((double)100 + (double)tempValue * 10 + (double)10));
 			lcd.setCursor(4, 2);
 			lcd.print("->");
 			lcd.setCursor(7, 2);
-			lcd.print(double(double(1) + (double)tempValue / 10));
+			lcd.print((int)(double(100) + (double)tempValue * 10));
 			if(tempValue != -10) {
 				lcd.setCursor(7, 3);
-				lcd.print(double(1) + (double)tempValue / 10 - (double)0.10);
+				lcd.print((int)(double(100) + (double)tempValue * 10 - (double)10));
 			}
 			break;
 		case DEBUG_ENCODERPOSITION:
