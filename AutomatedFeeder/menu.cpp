@@ -1,13 +1,13 @@
 #include "menu.h"
-#include "LiquidCrystal.h"
-#include "DS3231.h"
-#include "EEPROM.h"
 
-Menu::Menu(int EN, int RS, int D4, int D5, int D6, int D7, DateTime* clockTime): lcd(EN, RS, D4, D5, D6, D7) {
+Menu::Menu(DateTime* clockTime): lcd(0x27, 20, 4) {
+	lcd.init();
+	lcd.backlight();
 	lcd.begin(20, 4);
 	lcd.createChar(0, (uint8_t*)load_full);
 	lcd.createChar(1, (uint8_t*)load_empty);
 	lcd.createChar(2, (uint8_t*)arrow_up);
+	
 	this->clockTime = clockTime;
 
 	feederSignalPacket.feederSignal = NOSIGNAL;
@@ -18,10 +18,7 @@ void Menu::clearScreen() {
 	lcd.clear();
 }
 void Menu::resetScreen() {
-	lcd.begin(20, 4);
-	lcd.createChar(0, (uint8_t*)load_full);
-	lcd.createChar(1, (uint8_t*)load_empty);
-	lcd.createChar(2, (uint8_t*)arrow_up);
+	lcd.clear();
 }
 void Menu::returnToStandby() {
 	menuState = STANDBY;
@@ -747,17 +744,17 @@ void Menu::printStandby() {
 
 	//Print Load Line
 	//Max of 15 total load bars
-	lcd.setCursor(0, 4);
+	lcd.setCursor(0, 3);
 	lcd.print("LOAD:");
 	//Fill Full Load Positions
 	for (int i = 0; i < load; i++) {
-		lcd.setCursor(5 + i, 4);
-		lcd.LiquidCrystal::write((uint8_t)0);
+		lcd.setCursor(5 + i, 3);
+		lcd.write((uint8_t)0);
 	}
 	//Fill Empty load Positions
 	for (int i = 19; i >= 5 + load; i--) {
-		lcd.setCursor(i, 4);
-		lcd.LiquidCrystal::write((uint8_t)1);
+		lcd.setCursor(i, 3);
+		lcd.write((uint8_t)1);
 	}
 }
 void Menu::printOption_Time() {
@@ -803,24 +800,24 @@ void Menu::printOption_Time() {
 		switch (optionState) {
 		case STATE1:
 			lcd.setCursor(3, 2);
-			lcd.LiquidCrystal::write((uint8_t)2);
+			lcd.write((uint8_t)2);
 			lcd.setCursor(3, 3);
 			lcd.print("|");
 			break;
 		case STATE2:
 			lcd.setCursor(10, 2);
-			lcd.LiquidCrystal::write((uint8_t)2);
+			lcd.write((uint8_t)2);
 			lcd.setCursor(10, 3);
 			lcd.print("|");
 			break;
 		case STATE3:
 			lcd.setCursor(17, 2);
-			lcd.LiquidCrystal::write((uint8_t)2);
+			lcd.write((uint8_t)2);
 			lcd.setCursor(17, 3);
 			lcd.print("|");
 			break;
 		case STATE4:
-			lcd.setCursor(15, 4);
+			lcd.setCursor(15, 3);
 			lcd.print("EXIT");
 			break;
 		}
@@ -864,7 +861,7 @@ void Menu::printOption_Time() {
 		}
 
 		lcd.setCursor(9, 2);
-		lcd.LiquidCrystal::write((uint8_t)2);
+		lcd.write((uint8_t)2);
 		lcd.setCursor(9, 3);
 		lcd.print("|");
 	}
@@ -993,7 +990,7 @@ void Menu::printOption_Feedtime() {
 		}
 
 		lcd.setCursor(9, 2);
-		lcd.LiquidCrystal::write((uint8_t)2);
+		lcd.write((uint8_t)2);
 		lcd.setCursor(9, 3);
 		lcd.print("|");
 	}
@@ -1071,7 +1068,7 @@ void Menu::printOption_FeedVolume() {
 			}
 
 			lcd.setCursor(9, 2);
-			lcd.LiquidCrystal::write((uint8_t)2);
+			//lcd.write((uint8_t)2);
 			lcd.setCursor(9, 3);
 			lcd.print("|");
 		}
@@ -1101,7 +1098,7 @@ void Menu::printOption_FeedVolume() {
 			}
 
 			lcd.setCursor(9, 2);
-			lcd.LiquidCrystal::write((uint8_t)2);
+			//lcd.write((uint8_t)2);
 			lcd.setCursor(9, 3);
 			lcd.print("|");
 		}
@@ -1171,7 +1168,7 @@ void Menu::printOption_PrintDebug() {
 				}
 			}
 			lcd.setCursor(9, 2);
-			lcd.LiquidCrystal::write((uint8_t)2);
+			//lcd.write((uint8_t)2);
 			lcd.setCursor(9, 3);
 			lcd.print("|");
 			break;
@@ -1192,6 +1189,8 @@ void Menu::printOption_PrintDebug() {
 		case DEBUG_ENCODERPOSITION:
 			lcd.setCursor(3, 0);
 			lcd.print("ENCODER POSITION:");
+			lcd.setCursor(0, 2);
+			lcd.print("Degree: ");
 			break;
 		case DEBUG_IRSENSOR:
 			lcd.setCursor(2, 0);
@@ -1239,6 +1238,15 @@ void Menu::dispenseMessage(long encoderDegree, int timeRemaining) {
 		lcd.print("secs");
 	}
 }
+void Menu::flagUpdate(UserInput userinput) {
+	resetFlag = true;
+	if(userinput == LEFT) {
+		inputFlag = USERLEFT;
+	}
+	else {
+		inputFlag = USERRIGHT;
+	}
+}
 void Menu::update(UserInput userInput) {
 	//If the clock time is greater then the next feed time, the menu signals back to the main program
 	//that it should dispense food
@@ -1256,6 +1264,18 @@ void Menu::update(UserInput userInput) {
 	//the next feed time is found on the new day)
 	if (clockTime->Hour == 0 && clockTime->Minute == 0) {
 		findNextFeed();
+	}
+	if (inputFlag != NOINPUT) {
+		switch (inputFlag){
+		case(USERLEFT):
+			userInput = LEFT;
+			inputFlag = NOINPUT;
+			break;
+		case(USERRIGHT):
+			userInput = RIGHT;
+			inputFlag = NOINPUT;
+			break;
+		}
 	}
 	//If the user has not used the menu for 10 seconds, return to standby state
 	if (userInput == NONE && menuState != STANDBY && clockTime > (lastInputTime + 10)) {

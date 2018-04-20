@@ -1,6 +1,6 @@
 #pragma once
-#include "LiquidCrystal.h"
 #include "Arduino.h"
+#include <LiquidCrystal_I2C.h>
 //#include "DS3231.h"
 #include "EEPROM.h"
 #include "DS3231_Simple.h"
@@ -13,6 +13,7 @@ enum VolumeSetState { OUTSIDE_VOLUME, SETWHOLEDIGIT, SETPARTIALDIGIT};
 enum DebugSetState {OUTSIDE_DEBUG, DEBUG_MOTORTIME, DEBUG_MOTORVOLUME, DEBUG_ENCODERPOSITION, DEBUG_IRSENSOR};
 enum UserInput { NONE, LEFT, RIGHT, BUTTON };
 enum FeederSignal { NOSIGNAL, RUN_BYTIME, RUN_BYVOLUME };
+enum Input { NOINPUT, USERLEFT, USERRIGHT };
 
 
 struct FeedData{
@@ -86,6 +87,7 @@ private:
 	TimeSetState timeSetState = OUTSIDE_TIME;
 	VolumeSetState volumeSetState = OUTSIDE_VOLUME;
 	DebugSetState debugSetState = OUTSIDE_DEBUG;
+	Input inputFlag = NOINPUT;
 
 	//Character for a full load bar
 	byte load_full[8] = {
@@ -122,7 +124,7 @@ private:
 		B00100,
 	};
 
-	LiquidCrystal lcd;
+	LiquidCrystal_I2C lcd;
 
 	bool resetFlag = false;
 	int load;
@@ -162,11 +164,12 @@ public:
 
 	//The main loop of the menu program. Everytime the program runs through this loop, it decideds
 	//what to display based on the internal variable flags that were raised due to user input
+	void flagUpdate(UserInput userinput);
 	void update(UserInput userinput = NONE);
 	
 	//Constructor
 	//Initializes LCD, creates special characters, gives menu the global clock pointer
-	Menu(int RS, int EN, int D4, int D5, int D6, int D7, DateTime* clockTime);
+	Menu(DateTime* clockTime);
 };
 
 //Allows a comparison on wether the time contained in a time struct

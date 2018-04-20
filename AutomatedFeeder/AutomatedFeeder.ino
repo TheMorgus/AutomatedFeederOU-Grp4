@@ -4,12 +4,13 @@
  Author:	Morg
 */
 
+#include "Wire.h"
 #include <DS3231_Simple.h>
 //#include <DS3231.h>
 //old clock library without I2C function
-//#include <LiquidCrystal_I2C.h>
+#include <LiquidCrystal_I2C.h>
 #include <Rotary.h>
-#include "LiquidCrystal.h"
+//#include "LiquidCrystal.h"
 #include "menu.h"
 #include "AS5040.h"
 #include "FeederControl.h"
@@ -81,54 +82,68 @@ boolean currentButton = HIGH;
 
 Rotary rotary(ROTARY_PIN_DT, ROTARY_PIN_CLK);
 AS5040 myAS5040(ENCODERDATAPIN, ENCODERCLOCKPIN, ENCODERCHIPSELECTPIN);
-Menu menu(LCDRS_PIN, LCDEN_PIN, LCDD4_PIN, LCDD5_PIN, LCDD6_PIN, LCDD7_PIN, &time);
-FeederController feeder(&menu, &myAS5040);
+Menu *menu;
+FeederController *feeder;
 DS3231_Simple clock;
 
 //Sends directional information from the rotary encoder
 //to he menu for processing
 void checkUserInput() {
 	char result = rotary.process();
-	menu.clearScreen();
-	menu.flagReset();
 	if (result == DIR_CW) {
-		menu.update(LEFT);
+		menu->flagUpdate(LEFT);
 	}
-	else if (result == DIR_CCW){
-		menu.update(RIGHT);
+	else if (result == DIR_CCW) {
+		menu->flagUpdate(RIGHT);
 	}
 }
 
 void setup() {
+	menu = new Menu(&time);
+	feeder = new FeederController(menu, &myAS5040);
 	clock.begin();
-	menu.setLoad(5);
-	menu.passClock(&clock);
+	menu->setLoad(5);
+	menu->passClock(&clock);
 
 	pinMode( ROTARY_PIN_SW , INPUT);
 
+	
 	//interrupts for rotary encoder, rotary encoder must be on
 	//pins 2 and 3
 	attachInterrupt(0, checkUserInput, CHANGE);
 	attachInterrupt(1, checkUserInput, CHANGE);
 
 	//pointer used for recieving signals in the main loop
-	feederSignalPacket = menu.recieveSignalPointer();
+	feederSignalPacket = menu->recieveSignalPointer();
 
 	//must get time before loading data
 	time = clock.read();
-	menu.loadData();
+	menu->loadData();
 }
 
 
 void loop() {
 	time = clock.read();
+
 	//Get button change information and send to menu
 	currentButton = debounce(ROTARY_PIN_SW);
+
+	char result = rotary.process();
+	if (result == DIR_CW) {
+		menu->flagUpdate(LEFT);
+	}
+	else if (result == DIR_CCW) {
+		menu->flagUpdate(RIGHT);
+	}
+
+
 	if (lastButton == HIGH && currentButton == LOW) {
-		menu.update(BUTTON);
+
+		menu->update(BUTTON);
+
 	}
 	else {
-		menu.update();
+		menu->update();
 	}
 	lastButton = currentButton;
 	//This code block checks if the menu is flagging a food dispensement event
@@ -138,16 +153,16 @@ void loop() {
 		detachInterrupt(0);
 		detachInterrupt(1);
 		if (feederSignalPacket->feederSignal == RUN_BYTIME) {
-			feeder.dispenseByTime(feederSignalPacket->Val);
+			feeder->dispenseByTime(feederSignalPacket->Val);
 		}
 		else {
-			feeder.dispenseByVolume(feederSignalPacket->Val);
+			feeder->dispenseByVolume(feederSignalPacket->Val);
 		}
-		menu.flagReset();
+		menu->flagReset();
 		//clears out menu signal after food is dispensed
-		menu.signalRecieved();
+		menu->signalRecieved();
 		attachInterrupt(0, checkUserInput, CHANGE);
 		attachInterrupt(1, checkUserInput, CHANGE);
 	}
-	delay(100);
+	//delay(100);
 }
