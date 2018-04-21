@@ -2,34 +2,66 @@
 #include "AS5040.h"
 #include "Arduino.h"
 
+
+void FeederController::openDoor() {
+	// myServo->write(DOOROPEN_SERVO);
+}
+void FeederController::closeDoor() {
+	// myServo->write(DOORCLOSED_SERVO);
+}
+
+void FeederController::motorOn() {
+	digitalWrite(motorPin, LOW);
+}
+void FeederController::motorOff() {
+	digitalWrite(motorPin, HIGH);
+}
+
+void FeederController::setMotorPin(int motorPin) {
+
+	FeederController::motorPin = motorPin;
+}
+
+
+void FeederController::setEncoderPin(int encoderPin) {
+	FeederController::encoderPin = encoderPin;
+}
+
+long FeederController::readEncoderPin() {
+
+}
+
 void FeederController::dispenseByTime(int time) {
 	long value;
 	int timePassed = 0;
 	//value = myAS5040->encoder_value();
 	//menu->testPrint(value);
 	//menu->testPrint2(value);
+	this->openDoor();
+	delay(1000);
+	this->motorOn();
 	while (timePassed < time) {
-		value = myAS5040->encoder_degrees();
+		value = readEncoderPin();
 		menu->dispenseMessage(value, (double)time - (double)timePassed);
 		delay(600);
 		timePassed += 1;
 	}
+	this->motorOff();
+	delay(1000);
+	this->closeDoor();
 }
 
-void FeederController::dispenseByVolume(double volume) {
-	long value;
-	//value = myAS5040->encoder_value();
-	//menu->testPrint(value);
-	value = myAS5040->encoder_degrees();
-	//menu->testPrint2(value);
-	menu->dispenseMessage(value, -1);
-	delay(5000);
+int FeederController::dispenseByVolume(int& currentDeg, int& lastDeg, double volume) {
+	int Difference;
+
 }
 
 
-FeederController::FeederController(Menu* menu, AS5040* encoder){
+
+FeederController::FeederController(Menu* menu, AS5040* encoder) {
 	FeederController::menu = menu;
 	FeederController::myAS5040 = encoder;
+	FeederController::myServo = myServo;
 	rotaryPosition = 0;
 }
 

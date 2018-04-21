@@ -7,16 +7,16 @@
 
 
 enum MenuState { STANDBY, OPTION_TIME, OPTION_FEEDTIME, OPTION_FEEDVOLUME, OPTION_EXIT, OPTION_DEBUG };
-enum OptionState { OUTSIDE, STATE1, STATE2, STATE3, STATE4, STATE5, STATE6, STATE7, STATE8, STATE9};
+enum OptionState { OUTSIDE, STATE1, STATE2, STATE3, STATE4, STATE5, STATE6, STATE7, STATE8, STATE9 };
 enum TimeSetState { OUTSIDE_TIME, SETHOUR, SETMIN, SETSEC };
-enum VolumeSetState { OUTSIDE_VOLUME, SETWHOLEDIGIT, SETPARTIALDIGIT};
-enum DebugSetState {OUTSIDE_DEBUG, DEBUG_MOTORTIME, DEBUG_MOTORVOLUME, DEBUG_ENCODERPOSITION, DEBUG_IRSENSOR};
+enum VolumeSetState { OUTSIDE_VOLUME, SETWHOLEDIGIT, SETPARTIALDIGIT };
+enum DebugSetState { OUTSIDE_DEBUG, DEBUG_MOTORTIME, DEBUG_MOTORVOLUME, DEBUG_ENCODERPOSITION, DEBUG_IRSENSOR };
 enum UserInput { NONE, LEFT, RIGHT, BUTTON };
 enum FeederSignal { NOSIGNAL, RUN_BYTIME, RUN_BYVOLUME };
 enum Input { NOINPUT, USERLEFT, USERRIGHT };
 
 
-struct FeedData{
+struct FeedData {
 	DateTime time;
 	double volume;
 	bool exist;
@@ -160,13 +160,13 @@ public:
 	//In this case, the signal values are reset to the off state
 	void signalRecieved();
 	//Displays a message on the lcd screen for motor run events
-	void dispenseMessage(long encoderDegree, int timeRemaining = -1);
+	void dispenseMessage(long encoderDegree, int turns, int timeRemaining = -1);
 
 	//The main loop of the menu program. Everytime the program runs through this loop, it decideds
 	//what to display based on the internal variable flags that were raised due to user input
 	void flagUpdate(UserInput userinput);
 	void update(UserInput userinput = NONE);
-	
+
 	//Constructor
 	//Initializes LCD, creates special characters, gives menu the global clock pointer
 	Menu(DateTime* clockTime);

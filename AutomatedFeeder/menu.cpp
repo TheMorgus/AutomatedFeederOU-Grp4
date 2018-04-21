@@ -1,13 +1,13 @@
 #include "menu.h"
 
-Menu::Menu(DateTime* clockTime): lcd(0x27, 20, 4) {
+Menu::Menu(DateTime* clockTime) : lcd(0x27, 20, 4) {
 	lcd.init();
 	lcd.backlight();
 	lcd.begin(20, 4);
 	lcd.createChar(0, (uint8_t*)load_full);
 	lcd.createChar(1, (uint8_t*)load_empty);
 	lcd.createChar(2, (uint8_t*)arrow_up);
-	
+
 	this->clockTime = clockTime;
 
 	feederSignalPacket.feederSignal = NOSIGNAL;
@@ -149,13 +149,13 @@ void Menu::menuChoiceIncrement() {
 			}
 			break;
 		case DEBUG_MOTORVOLUME:
-			tempValue ++;
+			tempValue++;
 			break;
 		}
 	}
 	//if the user is in any of the individual option menus, but not any of the secondary
 	//deeper levels of those menus
-	else if (optionState != OUTSIDE ) {
+	else if (optionState != OUTSIDE) {
 		if (menuState == OPTION_TIME && optionState != STATE4) {
 			optionState = static_cast<OptionState>(optionState + 1);
 		}
@@ -199,7 +199,7 @@ void Menu::menuChoiceIncrement() {
 			}
 		}
 		else if (menuState == OPTION_FEEDVOLUME && optionState != STATE5) {
-			switch(optionState) {
+			switch (optionState) {
 			case STATE1:
 				if (feedData[1].exist) {
 					optionState = static_cast<OptionState>(optionState + 1);
@@ -277,7 +277,7 @@ void Menu::menuChoiceDecrement() {
 			}
 			break;
 		case DEBUG_MOTORVOLUME:
-			tempValue --;
+			tempValue--;
 			if (tempValue <= -10) {
 				tempValue = -10;
 			}
@@ -328,11 +328,11 @@ void Menu::menuChoiceDecrement() {
 		else if (menuState == OPTION_TIME) {
 			optionState = static_cast<OptionState>(optionState - 1);
 		}
-		else if (menuState == OPTION_FEEDVOLUME){
+		else if (menuState == OPTION_FEEDVOLUME) {
 			switch (optionState) {
 			case STATE5:
 				for (int i = 0; i < 4; i++) {
-					if (feedData[3-i].exist) {
+					if (feedData[3 - i].exist) {
 						optionState = static_cast<OptionState>(4 - i);
 						break;
 					}
@@ -349,7 +349,7 @@ void Menu::menuChoiceDecrement() {
 	}
 	//if user is in the option select screen
 	else if (optionState == OUTSIDE && menuState != OPTION_TIME) {
-			menuState = static_cast<MenuState>(menuState - 1);
+		menuState = static_cast<MenuState>(menuState - 1);
 	}
 }
 void Menu::buttonPush() {
@@ -448,15 +448,15 @@ void Menu::buttonPush() {
 		}
 	}
 	else if (debugSetState != OUTSIDE_DEBUG) {
-		switch(debugSetState) {
-		case(DEBUG_MOTORTIME) :
+		switch (debugSetState) {
+		case(DEBUG_MOTORTIME):
 			feederSignalPacket.feederSignal = RUN_BYTIME;
 			feederSignalPacket.Val = (double)tempValue;
 			this->returnToStandby();
 			break;
 		case(DEBUG_MOTORVOLUME):
 			feederSignalPacket.feederSignal = RUN_BYVOLUME;
-			feederSignalPacket.Val = double(100) + (double)tempValue * 10;
+			feederSignalPacket.Val = 100 + tempValue * 10;
 			this->returnToStandby();
 			break;
 		default:
@@ -539,7 +539,7 @@ void Menu::buttonPush() {
 			}
 			break;
 		case OPTION_DEBUG:
-			if (optionState == STATE5){
+			if (optionState == STATE5) {
 				this->returnToStandby();
 			}
 			else if (optionState == STATE1) {
@@ -559,7 +559,7 @@ void Menu::buttonPush() {
 	}
 	//if the menu is displaying the available options
 	else {
-		switch (menuState){
+		switch (menuState) {
 		case OPTION_TIME:
 			optionState = STATE1;
 			break;
@@ -584,7 +584,7 @@ void Menu::buttonPush() {
 			break;
 		}
 	}
-	}
+}
 void Menu::setFeedTime(int feedPosition, int hour, int min, int sec) {
 	feedData[feedPosition].time.Hour = hour;
 	feedData[feedPosition].time.Minute = min;
@@ -654,7 +654,7 @@ void Menu::printOptions() {
 		lcd.setCursor(11, 3);
 		lcd.print("->");
 		break;
-	//this should -never- happen
+		//this should -never- happen
 	default:
 		lcd.setCursor(13, 0);
 		lcd.print("ERROR");
@@ -841,7 +841,7 @@ void Menu::printOption_Time() {
 			maxTimeDigit = 60;
 			break;
 		}
-		for (int i = 0; i < 4; i++){
+		for (int i = 0; i < 4; i++) {
 			lcd.setCursor(9 + (i * 3), 1);
 			if ((i + tempValue) >= maxTimeDigit) {
 				lcd.print(i + tempValue - maxTimeDigit);
@@ -867,7 +867,7 @@ void Menu::printOption_Time() {
 	}
 }
 void Menu::printOption_Feedtime() {
-	int numFeedTimes= 4; 
+	int numFeedTimes = 4;
 	//In the outer portion othe feedtime menu
 	if (timeSetState == OUTSIDE_TIME) {
 		//user is indicating they wish to exit this part of the menu
@@ -1181,7 +1181,7 @@ void Menu::printOption_PrintDebug() {
 			lcd.print("->");
 			lcd.setCursor(7, 2);
 			lcd.print((int)(double(100) + (double)tempValue * 10));
-			if(tempValue != -10) {
+			if (tempValue != -10) {
 				lcd.setCursor(7, 3);
 				lcd.print((int)(double(100) + (double)tempValue * 10 - (double)10));
 			}
@@ -1213,7 +1213,7 @@ void Menu::signalRecieved() {
 	feederSignalPacket.feederSignal = NOSIGNAL;
 	feederSignalPacket.Val = 0;
 }
-void Menu::dispenseMessage(long encoderDegree, int timeRemaining) {
+void Menu::dispenseMessage(long encoderDegree, int turns, int timeRemaining) {
 	this->resetScreen();
 	lcd.setCursor(1, 0);
 	lcd.print("--DISPENSING FOOD--");
@@ -1227,10 +1227,12 @@ void Menu::dispenseMessage(long encoderDegree, int timeRemaining) {
 	lcd.print("Calc.Turns: ");
 	lcd.setCursor(15, 3);
 	lcd.print("turns");
+	lcd.setCursor(12, 3);
+	lcd.print("turns");
 	if (timeRemaining != -1) {
 		//this only shows up if the user is running in the run-by-time option
 		//in the debug menu
-		lcd.setCursor(0, 1 );
+		lcd.setCursor(0, 1);
 		lcd.print("Time Left: ");
 		lcd.setCursor(10, 1);
 		lcd.print(timeRemaining);
@@ -1240,7 +1242,7 @@ void Menu::dispenseMessage(long encoderDegree, int timeRemaining) {
 }
 void Menu::flagUpdate(UserInput userinput) {
 	resetFlag = true;
-	if(userinput == LEFT) {
+	if (userinput == LEFT) {
 		inputFlag = USERLEFT;
 	}
 	else {
@@ -1266,7 +1268,7 @@ void Menu::update(UserInput userInput) {
 		findNextFeed();
 	}
 	if (inputFlag != NOINPUT) {
-		switch (inputFlag){
+		switch (inputFlag) {
 		case(USERLEFT):
 			userInput = LEFT;
 			inputFlag = NOINPUT;
@@ -1292,7 +1294,7 @@ void Menu::update(UserInput userInput) {
 		else if (userInput == LEFT) {
 			menuChoiceDecrement();
 		}
-		else if (userInput == RIGHT ) {
+		else if (userInput == RIGHT) {
 			menuChoiceIncrement();
 		}
 		else if (userInput == BUTTON) {
@@ -1328,7 +1330,7 @@ void Menu::update(UserInput userInput) {
 		case OPTION_DEBUG:
 			this->printOption_PrintDebug();
 			break;
-		}	
+		}
 	}
 }
 bool operator>(const DateTime& time1, const DateTime& time2) {
