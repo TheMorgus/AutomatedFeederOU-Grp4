@@ -29,10 +29,6 @@ struct FeederSignalPacket {
 
 class Menu {
 private:
-	//reinitializes the LCD and recreates the custom characters
-	//this is needed because the interrupts used for the rotary encoder have
-	//a tendency to cause lcd errors
-	void resetScreen();
 	//sets the class variables to default states, so that when the menu class runs through
 	//its update loop, it will display the standby screen
 	void returnToStandby();
@@ -160,7 +156,7 @@ public:
 	//In this case, the signal values are reset to the off state
 	void signalRecieved();
 	//Displays a message on the lcd screen for motor run events
-	void dispenseMessage(long encoderDegree, int turns, int timeRemaining = -1);
+	void dispenseMessage(long encoderDegree, float turns, int timeRemaining = -1);
 
 	//The main loop of the menu program. Everytime the program runs through this loop, it decideds
 	//what to display based on the internal variable flags that were raised due to user input

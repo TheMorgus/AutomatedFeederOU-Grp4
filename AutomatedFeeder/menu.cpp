@@ -13,11 +13,7 @@ Menu::Menu(DateTime* clockTime) : lcd(0x27, 20, 4) {
 	feederSignalPacket.feederSignal = NOSIGNAL;
 	feederSignalPacket.Val = 0;
 }
-
 void Menu::clearScreen() {
-	lcd.clear();
-}
-void Menu::resetScreen() {
 	lcd.clear();
 }
 void Menu::returnToStandby() {
@@ -1213,8 +1209,8 @@ void Menu::signalRecieved() {
 	feederSignalPacket.feederSignal = NOSIGNAL;
 	feederSignalPacket.Val = 0;
 }
-void Menu::dispenseMessage(long encoderDegree, int turns, int timeRemaining) {
-	this->resetScreen();
+void Menu::dispenseMessage(long encoderDegree, float turns, int timeRemaining) {
+	this->clearScreen();
 	lcd.setCursor(1, 0);
 	lcd.print("--DISPENSING FOOD--");
 	lcd.setCursor(0, 2);
@@ -1228,7 +1224,7 @@ void Menu::dispenseMessage(long encoderDegree, int turns, int timeRemaining) {
 	lcd.setCursor(15, 3);
 	lcd.print("turns");
 	lcd.setCursor(12, 3);
-	lcd.print("turns");
+	lcd.print(turns);
 	if (timeRemaining != -1) {
 		//this only shows up if the user is running in the run-by-time option
 		//in the debug menu
@@ -1304,7 +1300,7 @@ void Menu::update(UserInput userInput) {
 	//Resets the screen when reset flags are up
 	if (resetFlag == true) {
 		delay(75);
-		this->resetScreen();
+		this->clearScreen();
 		resetFlag = false;
 	}
 	//Prints the standby menu state if standby flag is raised

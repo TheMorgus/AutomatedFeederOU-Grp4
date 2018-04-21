@@ -22,39 +22,30 @@ void FeederController::setMotorPin(int motorPin) {
 	FeederController::motorPin = motorPin;
 }
 
+//void FeederController::dispenseByTime(int time) {
+//	long value;
+//	int timePassed = 0;
+//	//value = myAS5040->encoder_value();
+//	//menu->testPrint(value);
+//	//menu->testPrint2(value);
+//	this->openDoor();
+//	delay(1000);
+//	this->motorOn();
+//	while (timePassed < time) {
+//		value = readEncoderPin();
+//		menu->dispenseMessage(value, (double)time - (double)timePassed);
+//		delay(600);
+//		timePassed += 1;
+//	}
+//	this->motorOff();
+//	delay(1000);
+//	this->closeDoor();
+//}
 
-void FeederController::setEncoderPin(int encoderPin) {
-	FeederController::encoderPin = encoderPin;
-}
-
-long FeederController::readEncoderPin() {
-
-}
-
-void FeederController::dispenseByTime(int time) {
-	long value;
-	int timePassed = 0;
-	//value = myAS5040->encoder_value();
-	//menu->testPrint(value);
-	//menu->testPrint2(value);
-	this->openDoor();
-	delay(1000);
-	this->motorOn();
-	while (timePassed < time) {
-		value = readEncoderPin();
-		menu->dispenseMessage(value, (double)time - (double)timePassed);
-		delay(600);
-		timePassed += 1;
-	}
-	this->motorOff();
-	delay(1000);
-	this->closeDoor();
-}
-
-int FeederController::dispenseByVolume(int& currentDeg, int& lastDeg, double volume) {
-	int Difference;
-
-}
+//int FeederController::dispenseByVolume(int& currentDeg, int& lastDeg, double volume) {
+//	int Difference;
+//
+//}
 
 
 

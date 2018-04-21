@@ -17,13 +17,9 @@ Author:  Morg
 #include "Servo.h"
 
 //MOTOR ENCODER PINS
-const uint8_t ENCODERDATAPIN = 10;
+const int ENCODERDATAPIN = 10;
 const int ENCODERCLOCKPIN = 9;
 const int ENCODERCHIPSELECTPIN = 8;
-//RTC PINS
-const int DS3231_PIN_SCL = 11;
-const int DS3231_PIN_SDL = 10;
-
 //ROTARY PINS
 const int ROTARY_PIN_SW = 4;
 const int ROTARY_PIN_CLK = 2;
@@ -33,7 +29,7 @@ const int SERVO_PIN = 10;
 //MOTOR PIN
 const int MOTORPIN = 5;
 //ENCODER PIN
-const int ENCODERPIN = A0;
+const int ENCODERPIN = 10;
 //IR SENSOR
 const int IRSENSOR = A1;
 
@@ -48,7 +44,6 @@ Servo myServo;
 Rotary rotary(ROTARY_PIN_DT, ROTARY_PIN_CLK);
 AS5040* myAS5040;
 Menu *menu;
-FeederController *feeder;
 DS3231_Simple clock;
 
 //Sends directional information from the rotary encoder
@@ -95,30 +90,88 @@ long readEncoder() {
 	return(raw_value);
 }
 
-void runMotor(int targetDegree) {
+void runMotorTime(int targetTime) {
+	int currentDeg = readEncoder();
+	int lastDeg = currentDeg;
+	int totalDeg = 0;
+	int time = 0;
+	//this->openDoor();
+	//delay(1000);
+	motorOn();
+	menu->dispenseMessage(totalDeg, 0, targetTime);
+	while (time < targetTime) {
+		currentDeg = readEncoder();
+		if (lastDeg > 300 && currentDeg < 100) {
+			totalDeg += 360 - lastDeg + currentDeg;
+			lastDeg = currentDeg;
+		}
+		else if (currentDeg > lastDeg) {
+			totalDeg += currentDeg - lastDeg;
+			lastDeg = currentDeg;
+		}
+		float turns = (float)totalDeg / (float)360;
+		menu->dispenseMessage(totalDeg, turns, targetTime - time);
+		time++;
+		delay(600);
+	}
+	motorOff();
+	//closedoor
+	//delay1000
+}
 
+void runMotorVolume(int targetDegree) {
+	int lastDeg = readEncoder();
+	int currentDeg = readEncoder();
+	int totalDeg = 0;
+	//this->openDoor();
+	//delay(1000);
+	motorOn();
+	menu->dispenseMessage(totalDeg, 0, -1);
+	while (totalDeg < targetDegree) {
+		currentDeg = readEncoder();
+		if (lastDeg > 300 && currentDeg < 100) {
+			totalDeg += 360 - lastDeg + currentDeg;
+			lastDeg = currentDeg;
+		}
+		else if (currentDeg > lastDeg) {
+			totalDeg += currentDeg - lastDeg;
+			lastDeg = currentDeg;
+		}
+		float turns = (float)totalDeg / (float)360;
+		if (lastDeg != totalDeg) {
+			menu->dispenseMessage(totalDeg, turns, -1);
+		}
+	}
+	motorOff();
+	//closedoor
+	//delay1000
+}
+
+void motorOn() {
+	digitalWrite(MOTORPIN, LOW);
+}
+
+void motorOff() {
+	digitalWrite(MOTORPIN, HIGH);
 }
 
 void setup() {
 	myAS5040 = new AS5040(10, 9, 8);
 	menu = new Menu(&time);
+
 	myServo.attach(SERVO_PIN);
-	feeder = new FeederController(menu, myAS5040);
-	clock.begin();
-	menu->setLoad(5);
-	menu->passClock(&clock);
+
 	//Serial.begin(9600);
-	pinMode(10, INPUT);
-	pinMode(9, OUTPUT);
-	pinMode(8, OUTPUT);
+	//Encoder pins
+	pinMode(ENCODERDATAPIN, INPUT);
+	pinMode(ENCODERCLOCKPIN, OUTPUT);
+	pinMode(ENCODERCHIPSELECTPIN, OUTPUT);
+	//IR pins
 	pinMode(IRSENSOR, INPUT);
-
-
+	//Rotary button pin
 	pinMode(ROTARY_PIN_SW, INPUT);
+	//Motor pin
 	pinMode(MOTORPIN, OUTPUT);
-	feeder->setMotorPin(MOTORPIN);
-	feeder->setEncoderPin(ENCODERPIN);
-
 
 	//interrupts for rotary encoder, rotary encoder must be on
 	//pins 2 and 3
@@ -129,11 +182,13 @@ void setup() {
 	feederSignalPacket = menu->recieveSignalPointer();
 
 	//must get time before loading data
+	clock.begin();
+	menu->setLoad(5);
+	menu->passClock(&clock);
 	time = clock.read();
 	menu->loadData();
-	feeder->motorOff();
+	motorOff;
 }
-
 
 void loop() {
 	myServo.write(150);
@@ -142,15 +197,10 @@ void loop() {
 	delay(1000);
 
 	time = clock.read();
-	//Serial.println("notFried");
 	//Get button change information and send to menu
 	currentButton = debounce(ROTARY_PIN_SW);
-
-
 	if (lastButton == HIGH && currentButton == LOW) {
-
 		menu->update(BUTTON);
-
 	}
 	else {
 		menu->update();
@@ -163,43 +213,15 @@ void loop() {
 		detachInterrupt(0);
 		detachInterrupt(1);
 		if (feederSignalPacket->feederSignal == RUN_BYTIME) {
-			feeder->dispenseByTime(feederSignalPacket->Val);
+			runMotorTime(feederSignalPacket->Val);
 		}
 		else {
-			int lastDeg = readEncoder();
-			int currentDeg = readEncoder();
-			int totalDeg = 0;
-			//this->openDoor();
-			//delay(1000);
-			feeder->motorOn();
-			menu->dispenseMessage(totalDeg, 0, -1);
-			while (totalDeg < feederSignalPacket->Val) {
-				currentDeg = readEncoder();
-				if (lastDeg > 300 && currentDeg < 100) {
-					totalDeg += 360 - lastDeg + currentDeg;
-					lastDeg = currentDeg;
-				}
-				else if (currentDeg > lastDeg) {
-					totalDeg += currentDeg - lastDeg;
-					lastDeg = currentDeg;
-				}
-				float turns = (float)totalDeg / (float)360;
-				if (lastDeg != totalDeg) {
-					menu->dispenseMessage(totalDeg, turns, -1);
-				}
-			}
-			feeder->motorOff();
+			runMotorVolume(feederSignalPacket->Val);
 		}
+		menu->flagReset();
+		menu->signalRecieved();
+		//reattach interrupts after motor run event;
+		attachInterrupt(0, checkUserInput, CHANGE);
+		attachInterrupt(1, checkUserInput, CHANGE);
 	}
-
-
-	//motorOff();
-	//closeDoor();
-	menu->flagReset();
-	//clears out menu signal after food is dispensed
-	menu->signalRecieved();
-	attachInterrupt(0, checkUserInput, CHANGE);
-	attachInterrupt(1, checkUserInput, CHANGE);
-	//delay(250);
-
 }
