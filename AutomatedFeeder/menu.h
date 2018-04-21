@@ -1,7 +1,6 @@
 #pragma once
 #include "Arduino.h"
 #include <LiquidCrystal_I2C.h>
-//#include "DS3231.h"
 #include "EEPROM.h"
 #include "DS3231_Simple.h"
 
@@ -158,9 +157,11 @@ public:
 	//Displays a message on the lcd screen for motor run events
 	void dispenseMessage(long encoderDegree, float turns, int timeRemaining = -1);
 
+	//used by the interrupt to raise flags based on encoder usage
+	//to be run the next run through the update loop
+	void flagUpdate(UserInput userinput);
 	//The main loop of the menu program. Everytime the program runs through this loop, it decideds
 	//what to display based on the internal variable flags that were raised due to user input
-	void flagUpdate(UserInput userinput);
 	void update(UserInput userinput = NONE);
 
 	//Constructor
