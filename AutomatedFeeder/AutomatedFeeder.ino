@@ -9,7 +9,9 @@ Author:  Morg
 #include <LiquidCrystal_I2C.h>
 #include <Rotary.h>
 #include "menu.h"
-#include "AS5040.h"
+//#include "AS5040.h"
+//class not used but code directly integrated into 
+//readEncoder function in main code
 #include "Servo.h"
 
 //MOTOR ENCODER PINS
@@ -35,7 +37,6 @@ FeederSignalPacket* feederSignalPacket;
 
 Servo myServo;
 Rotary rotary(ROTARY_PIN_DT, ROTARY_PIN_CLK);
-AS5040* myAS5040;
 Menu *menu;
 DS3231_Simple clock;
 
@@ -72,12 +73,9 @@ boolean debounce(int buttonpin) {
 }
 
 long readEncoder() {
-	int _data = 10;
-	int _clock = 9;
-	int _cs = 8;
-	pinMode(_data, INPUT);
-	pinMode(_clock, OUTPUT);
-	pinMode(_cs, OUTPUT);
+	int _data = ENCODERDATAPIN;
+	int _clock = ENCODERCLOCKPIN;
+	int _cs = ENCODERCHIPSELECTPIN;
 	uint32_t raw_value = 0;
 	uint16_t inputstream = 0;
 	uint16_t c;
@@ -178,7 +176,6 @@ void runMotorDeg(int targetDegree) {
 }
 
 void setup() {
-	myAS5040 = new AS5040(10, 9, 8);
 	menu = new Menu(&time);
 
 	myServo.attach(SERVO_PIN);
