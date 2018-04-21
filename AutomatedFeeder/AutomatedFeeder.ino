@@ -6,14 +6,10 @@ Author:  Morg
 
 #include "Wire.h"
 #include <DS3231_Simple.h>
-//#include <DS3231.h>
-//old clock library without I2C function
 #include <LiquidCrystal_I2C.h>
 #include <Rotary.h>
-//#include "LiquidCrystal.h"
 #include "menu.h"
 #include "AS5040.h"
-#include "FeederControl.h"
 #include "Servo.h"
 
 //MOTOR ENCODER PINS
@@ -25,20 +21,17 @@ const int ROTARY_PIN_SW = 4;
 const int ROTARY_PIN_CLK = 2;
 const int ROTARY_PIN_DT = 3;
 //SERVO PIN(s)
-const int SERVO_PIN = 10;
+const int SERVO_PIN = 11;
+//Values to send to IR sensor at the respective states
+const int SERVO_DOOROPEN = 20;
+const int SERVO_DOORCLOSED = 180;
 //MOTOR PIN
 const int MOTORPIN = 5;
-//ENCODER PIN
-const int ENCODERPIN = 10;
 //IR SENSOR
 const int IRSENSOR = A1;
 
-
 DateTime time;
 FeederSignalPacket* feederSignalPacket;
-
-boolean lastButton = HIGH;
-boolean currentButton = HIGH;
 
 Servo myServo;
 Rotary rotary(ROTARY_PIN_DT, ROTARY_PIN_CLK);
@@ -46,8 +39,13 @@ AS5040* myAS5040;
 Menu *menu;
 DS3231_Simple clock;
 
-//Sends directional information from the rotary encoder
-//to he menu for processing
+//for debouncing the button
+boolean lastButton = HIGH;
+boolean currentButton = HIGH;
+
+//rotary encoder movement triggers interrupts, those interrupts
+//call this function, which tells the menu which direction the user is turning
+//the encoder
 void checkUserInput() {
 	char result = rotary.process();
 	if (result == DIR_CW) {
@@ -56,6 +54,21 @@ void checkUserInput() {
 	else if (result == DIR_CCW) {
 		menu->flagUpdate(RIGHT);
 	}
+}
+
+boolean debounce(int buttonpin) {
+	boolean state1;
+	boolean state2;
+	boolean state3;
+	do {
+		state1 = digitalRead(buttonpin);
+		delay(5);
+		state2 = digitalRead(buttonpin);
+		delay(5);
+		state3 = digitalRead(buttonpin);
+		delay(5);
+	} while (state1 != state2 || state1 != state3);
+	return state1;
 }
 
 long readEncoder() {
@@ -95,10 +108,12 @@ void runMotorTime(int targetTime) {
 	int lastDeg = currentDeg;
 	int totalDeg = 0;
 	int time = 0;
-	//this->openDoor();
-	//delay(1000);
+	//open feeder doors before dispensing food
+	myServo.write(SERVO_DOOROPEN);
+	delay(1000);
 	motorOn();
 	menu->dispenseMessage(totalDeg, 0, targetTime);
+	//turn the motor until the elapsed time has passed
 	while (time < targetTime) {
 		currentDeg = readEncoder();
 		if (lastDeg > 300 && currentDeg < 100) {
@@ -112,21 +127,27 @@ void runMotorTime(int targetTime) {
 		float turns = (float)totalDeg / (float)360;
 		menu->dispenseMessage(totalDeg, turns, targetTime - time);
 		time++;
-		delay(600);
+		//delay of 560 is used to approximate one second through one iteration of the loop
+		//this is because the encoder read has a combined delay of 440 coded into the function
+		delay(560);
 	}
+	//close doors after dispensing food
 	motorOff();
-	//closedoor
-	//delay1000
+	delay(1000);
+	myServo.write(SERVO_DOORCLOSED);
 }
 
 void runMotorVolume(int targetDegree) {
 	int lastDeg = readEncoder();
 	int currentDeg = readEncoder();
 	int totalDeg = 0;
-	//this->openDoor();
-	//delay(1000);
+	myServo.write(SERVO_DOOROPEN);
+	//open feeder doors before dispensing food
+	delay(1000);
 	motorOn();
 	menu->dispenseMessage(totalDeg, 0, -1);
+	//turn the motor until the auger has rotated by the target
+	//degree value
 	while (totalDeg < targetDegree) {
 		currentDeg = readEncoder();
 		if (lastDeg > 300 && currentDeg < 100) {
@@ -143,8 +164,9 @@ void runMotorVolume(int targetDegree) {
 		}
 	}
 	motorOff();
-	//closedoor
-	//delay1000
+	//close doors after dispensing food
+	delay(1000);
+	myServo.write(SERVO_DOORCLOSED);
 }
 
 void motorOn() {
@@ -191,11 +213,6 @@ void setup() {
 }
 
 void loop() {
-	myServo.write(150);
-	delay(1000);
-	myServo.write(30);
-	delay(1000);
-
 	time = clock.read();
 	//Get button change information and send to menu
 	currentButton = debounce(ROTARY_PIN_SW);

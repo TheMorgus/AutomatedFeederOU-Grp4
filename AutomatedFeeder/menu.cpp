@@ -1247,9 +1247,11 @@ void Menu::flagUpdate(UserInput userinput) {
 }
 void Menu::update(UserInput userInput) {
 	//If the clock time is greater then the next feed time, the menu signals back to the main program
-	//that it should dispense food
-	//if the nextfeedpos is < 0, there is either no feedtimes set by the user or the next feed time is during
-	//the subsequent day, so the motor shouldnt be run if the nextFeedPos is any of those values
+	//that it should dispense food using this pointer, which is checked every time the main loop runs for changes
+	//if the nextfeedpos is < 0, this indicates either:
+	//1)no feedtimes set by the user or,
+	//2)The next feed time is during the subsequent day,
+	//so the motor shouldn't be run if the nextFeedPos is any of those values
 	if (nextFeedPos >= 0 && menuState != OPTION_FEEDTIME) {
 		if (clockTime > feedData[nextFeedPos].time) {
 			feederSignalPacket.feederSignal = RUN_BYVOLUME;

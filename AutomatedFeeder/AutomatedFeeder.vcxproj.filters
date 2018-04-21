@@ -27,18 +27,12 @@
     <ClInclude Include="AS5040.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FeederControl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="menu.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="AS5040.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="FeederControl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
