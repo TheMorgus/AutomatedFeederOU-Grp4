@@ -226,7 +226,7 @@ void Menu::menuChoiceIncrement() {
 
 			}
 		}
-		else if (menuState == OPTION_DEBUG && optionState != STATE5) {
+		else if (menuState == OPTION_DEBUG && optionState != STATE3) {
 			optionState = static_cast<OptionState>(optionState + 1);
 		}
 	}
@@ -535,7 +535,8 @@ void Menu::buttonPush() {
 			}
 			break;
 		case OPTION_DEBUG:
-			if (optionState == STATE5) {
+			//exit state
+			if (optionState == STATE3) {
 				this->returnToStandby();
 			}
 			else if (optionState == STATE1) {
@@ -544,12 +545,12 @@ void Menu::buttonPush() {
 			else if (optionState == STATE2) {
 				debugSetState = DEBUG_MOTORVOLUME;
 			}
-			else if (optionState == STATE3) {
+			/*else if (optionState == STATE3) {
 				debugSetState = DEBUG_ENCODERPOSITION;
 			}
 			else if (optionState == STATE4) {
 				debugSetState = DEBUG_IRSENSOR;
-			}
+			}*/
 			break;
 		}
 	}
@@ -1104,7 +1105,7 @@ void Menu::printOption_PrintDebug() {
 	//user is in the first layer of the debug menu
 	if (debugSetState == OUTSIDE_DEBUG) {
 		//user places the rotary encoder on the portion of the debug menu indicating they wish to exit
-		if (optionState == STATE5) {
+		if (optionState == STATE3) {
 			lcd.setCursor(8, 1);
 			lcd.print("Exit");
 		}
@@ -1112,11 +1113,11 @@ void Menu::printOption_PrintDebug() {
 			lcd.setCursor(4, 0);
 			lcd.print("RunMotorByTime");
 			lcd.setCursor(4, 1);
-			lcd.print("RunMotorByVol");
-			lcd.setCursor(4, 2);
+			lcd.print("RunMotorByDeg");
+			/*lcd.setCursor(4, 2);
 			lcd.print("Encod. Position");
 			lcd.setCursor(4, 3);
-			lcd.print("IR. Value");
+			lcd.print("IR. Value");*/
 
 			switch (optionState) {
 			case STATE1:
@@ -1127,14 +1128,14 @@ void Menu::printOption_PrintDebug() {
 				lcd.setCursor(0, 1);
 				lcd.print("->");
 				break;
-			case STATE3:
+			/*case STATE3:
 				lcd.setCursor(0, 2);
 				lcd.print("->");
 				break;
 			case STATE4:
 				lcd.setCursor(0, 3);
 				lcd.print("->");
-				break;
+				break;*/
 			}
 		}
 	}
@@ -1172,17 +1173,17 @@ void Menu::printOption_PrintDebug() {
 			lcd.setCursor(1, 0);
 			lcd.print("DEGREES TO TURN:");
 			lcd.setCursor(7, 1);
-			lcd.print((int)((double)100 + (double)tempValue * 10 + (double)10));
+			lcd.print((int)((double)90 + (double)tempValue * 90 + (double)90));
 			lcd.setCursor(4, 2);
 			lcd.print("->");
 			lcd.setCursor(7, 2);
-			lcd.print((int)(double(100) + (double)tempValue * 10));
+			lcd.print((int)(double(90) + (double)tempValue * 90));
 			if (tempValue != -10) {
 				lcd.setCursor(7, 3);
-				lcd.print((int)(double(100) + (double)tempValue * 10 - (double)10));
+				lcd.print((int)(double(90) + (double)tempValue * 90 - (double)90));
 			}
 			break;
-		case DEBUG_ENCODERPOSITION:
+		/*case DEBUG_ENCODERPOSITION:
 			lcd.setCursor(3, 0);
 			lcd.print("ENCODER POSITION:");
 			lcd.setCursor(0, 2);
@@ -1195,7 +1196,7 @@ void Menu::printOption_PrintDebug() {
 			lcd.print("IR ANALOG VAL:");
 			lcd.setCursor(0, 2);
 			lcd.print("CALC. HEIGHT: ");
-			break;
+			break;*/
 		}
 	}
 }

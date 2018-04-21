@@ -103,6 +103,14 @@ long readEncoder() {
 	return(raw_value);
 }
 
+void motorOn() {
+	digitalWrite(MOTORPIN, LOW);
+}
+
+void motorOff() {
+	digitalWrite(MOTORPIN, HIGH);
+}
+
 void runMotorTime(int targetTime) {
 	int currentDeg = readEncoder();
 	int lastDeg = currentDeg;
@@ -137,7 +145,7 @@ void runMotorTime(int targetTime) {
 	myServo.write(SERVO_DOORCLOSED);
 }
 
-void runMotorVolume(int targetDegree) {
+void runMotorDeg(int targetDegree) {
 	int lastDeg = readEncoder();
 	int currentDeg = readEncoder();
 	int totalDeg = 0;
@@ -167,14 +175,6 @@ void runMotorVolume(int targetDegree) {
 	//close doors after dispensing food
 	delay(1000);
 	myServo.write(SERVO_DOORCLOSED);
-}
-
-void motorOn() {
-	digitalWrite(MOTORPIN, LOW);
-}
-
-void motorOff() {
-	digitalWrite(MOTORPIN, HIGH);
 }
 
 void setup() {
@@ -233,7 +233,7 @@ void loop() {
 			runMotorTime(feederSignalPacket->Val);
 		}
 		else {
-			runMotorVolume(feederSignalPacket->Val);
+			runMotorDeg(feederSignalPacket->Val);
 		}
 		menu->flagReset();
 		menu->signalRecieved();
