@@ -63,7 +63,6 @@ then either
 
   i)Either copy paste the AutomatedFeeder.ino text into a sketch using
     a)The arduino to open the solution
-    
     b)Github to open the file as text
     
   ii)Copy and paste the header files and cpp files for "AS5040" and "menu" into your
