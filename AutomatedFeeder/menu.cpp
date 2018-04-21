@@ -451,7 +451,7 @@ void Menu::buttonPush() {
 			this->returnToStandby();
 			break;
 		case(DEBUG_MOTORVOLUME):
-			feederSignalPacket.feederSignal = RUN_BYVOLUME;
+			feederSignalPacket.feederSignal = RUN_BYDEG;
 			feederSignalPacket.Val = 100 + tempValue * 10;
 			this->returnToStandby();
 			break;
@@ -742,7 +742,7 @@ void Menu::printStandby() {
 	//Print Load Line
 	//Max of 15 total load bars
 	lcd.setCursor(0, 3);
-	lcd.print("LOAD:");
+	lcd.print("FOOD:");
 	//Fill Full Load Positions
 	for (int i = 0; i < load; i++) {
 		lcd.setCursor(5 + i, 3);
@@ -1196,6 +1196,8 @@ void Menu::printOption_PrintDebug() {
 			lcd.print("IR ANALOG VAL:");
 			lcd.setCursor(0, 2);
 			lcd.print("CALC. HEIGHT: ");
+			lcd.setCursor(0, 3);
+			lcd.print("CUBIC INCHES: ");
 			break;*/
 		}
 	}
@@ -1237,6 +1239,24 @@ void Menu::dispenseMessage(long encoderDegree, float turns, int timeRemaining) {
 		lcd.print("secs");
 	}
 }
+void Menu::printIRState(int sensorVal, float calcHeight, float calcVol) {
+	int dataColumn = 16;
+	this->clearScreen();
+	lcd.setCursor(2, 0);
+	lcd.print("-IR INFORMATION-");
+	lcd.setCursor(0, 1);
+	lcd.print("IR ANALOG VAL:");
+	lcd.setCursor(dataColumn, 1);
+	lcd.print(sensorVal);
+	lcd.setCursor(0, 2);
+	lcd.print("CALC. HEIGHT: ");
+	lcd.setCursor(dataColumn, 2);
+	lcd.print(calcHeight);
+	lcd.setCursor(0, 3);
+	lcd.print("CUBIC INCHES: ");
+	lcd.setCursor(dataColumn, 3);
+	lcd.print(calcVol);
+}
 void Menu::flagUpdate(UserInput userinput) {
 	resetFlag = true;
 	if (userinput == LEFT) {
@@ -1255,8 +1275,11 @@ void Menu::update(UserInput userInput) {
 	//so the motor shouldn't be run if the nextFeedPos is any of those values
 	if (nextFeedPos >= 0 && menuState != OPTION_FEEDTIME) {
 		if (clockTime > feedData[nextFeedPos].time) {
-			feederSignalPacket.feederSignal = RUN_BYVOLUME;
-			feederSignalPacket.Val = feedData[nextFeedPos].volume;
+			feederSignalPacket.feederSignal = RUN_BYDEG;
+			//volume is stored as cups in data structure feedData, must multiple this volume
+			//by an empirically found conversion factor to convert this value to a required
+			//degree of rotation by the motor.
+			feederSignalPacket.Val = feedData[nextFeedPos].volume * CUPSTODEGREESCONVERSION;
 			findNextFeed();
 		}
 	}

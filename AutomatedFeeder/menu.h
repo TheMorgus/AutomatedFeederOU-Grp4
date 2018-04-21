@@ -11,9 +11,10 @@ enum TimeSetState { OUTSIDE_TIME, SETHOUR, SETMIN, SETSEC };
 enum VolumeSetState { OUTSIDE_VOLUME, SETWHOLEDIGIT, SETPARTIALDIGIT };
 enum DebugSetState { OUTSIDE_DEBUG, DEBUG_MOTORTIME, DEBUG_MOTORVOLUME, DEBUG_ENCODERPOSITION, DEBUG_IRSENSOR };
 enum UserInput { NONE, LEFT, RIGHT, BUTTON };
-enum FeederSignal { NOSIGNAL, RUN_BYTIME, RUN_BYVOLUME };
+enum FeederSignal { NOSIGNAL, RUN_BYTIME, RUN_BYDEG, SHOW_IR};
 enum Input { NOINPUT, USERLEFT, USERRIGHT };
 
+const float CUPSTODEGREESCONVERSION = 1;
 
 struct FeedData {
 	DateTime time;
@@ -154,9 +155,11 @@ public:
 	//Indicates to the menu that the signal indicating a motor run event was recieved
 	//In this case, the signal values are reset to the off state
 	void signalRecieved();
-	//Displays a message on the lcd screen for motor run events
+	/*
+	Displays a message on the lcd screen for motor run events
+	*/
 	void dispenseMessage(long encoderDegree, float turns, int timeRemaining = -1);
-
+	void printIRState(int sensorVal, float calcHeight, float calcVol);
 	//used by the interrupt to raise flags based on encoder usage
 	//to be run the next run through the update loop
 	void flagUpdate(UserInput userinput);
